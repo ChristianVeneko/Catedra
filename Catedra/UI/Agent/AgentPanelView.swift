@@ -8,7 +8,11 @@ struct AgentPanelView: View {
     let scope: AgentScope
     let color: Color
 
-    @State private var draft = ""
+    @State private var composer = ComposerModel()
+    @State private var notice: String?
+    @State private var showResume = false
+    @State private var showFiles = false
+    @State private var sheetFiles: [URL] = []
     @State private var options = AgentOptions()
     @State private var pendingRecipe: Recipe?
     @State private var recipeText = ""
@@ -34,10 +38,22 @@ struct AgentPanelView: View {
             }
             if let run { AgentFooter(run: run) }
             Divider()
-            composer
+            composerBar
         }
         .quickLookPreview($quickLookURL, in: generated)
-        .onAppear { options = AgentOptions(model: container.settings.agentModel, permissionMode: container.settings.agentPermissionMode) }
+        .onAppear {
+            options = AgentOptions(model: container.settings.agentModel, permissionMode: container.settings.agentPermissionMode)
+            composer.history = PromptHistory(entries: registry.promptHistory(in: scope.id))
+            composer.setAvailable(availableCommands)
+        }
+        .task(id: scope.id) { await container.commands.prepare(folder: scopeFolder) }
+        .onChange(of: availableCommands) { _, commands in composer.setAvailable(commands) }
+        .sheet(isPresented: $showResume) {
+            ResumePickerSheet(scope: scope, runs: registry.runs, pick: resume, cancel: { showResume = false })
+        }
+        .sheet(isPresented: $showFiles) {
+            GeneratedFilesSheet(files: sheetFiles, preview: { quickLookURL = $0 }, close: { showFiles = false })
+        }
         .task(id: ScanKey(runID: run?.id, finished: run?.finishedAt, running: run?.isRunning ?? false)) { await scanGenerated() }
     }
 
@@ -94,46 +110,19 @@ struct AgentPanelView: View {
         }
     }
 
-    private var composer: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .bottom, spacing: 10) {
-                TextField(run == nil ? "Escriba una instrucción para el agente…" : "Continuar la conversación…",
-                          text: $draft, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .lineLimit(1...6)
-                    .padding(10)
-                    .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .disabled(busy)
-                if busy, let run {
-                    Button { registry.stop(runID: run.id) } label: { Label("Detener", systemImage: "stop.fill") }
-                        .buttonStyle(.borderedProminent).tint(.red)
-                } else {
-                    Button(action: send) { Label("Enviar", systemImage: "arrow.up.circle.fill") }
-                        .buttonStyle(.borderedProminent).tint(color)
-                        .keyboardShortcut(.return, modifiers: .command)
-                        .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        .help("Enviar (⌘↩)")
-                }
+    private var composerBar: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let notice {
+                Label(notice, systemImage: "info.circle").font(.caption).foregroundStyle(.secondary)
+                    .transition(.opacity)
             }
-            HStack(spacing: 14) {
-                Picker("Modelo", selection: $options.model) {
-                    ForEach(AgentModel.allCases) { Text($0.label).tag($0) }
-                }
-                .pickerStyle(.menu).fixedSize()
-                Picker("Permisos", selection: $options.permissionMode) {
-                    ForEach(AgentPermissionMode.allCases) { Text($0.label).tag($0) }
-                }
-                .pickerStyle(.menu).fixedSize()
-                .help(options.permissionMode.detail)
-                if options.permissionMode == .bypassPermissions {
-                    Label("El agente podrá ejecutar cualquier acción sin pedir permiso.", systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption).foregroundStyle(.orange)
-                }
-                Spacer()
-            }
-            .font(.callout)
+            AgentComposerView(model: composer, options: $options, scopeFolder: scopeFolder, color: color,
+                              hasRun: run != nil, busy: busy,
+                              send: send, stop: { if let run { registry.stop(runID: run.id) } },
+                              execute: execute)
         }
         .padding(.horizontal, 20).padding(.vertical, 12)
+        .animation(.easeOut(duration: 0.15), value: notice)
     }
 
     // MARK: - Actions
@@ -143,11 +132,59 @@ struct AgentPanelView: View {
         return []
     }
 
-    private func send() {
-        let text = draft
+    private var scopeFolder: URL { scope.url(in: container.settings.workspaceURL) }
+    private var availableCommands: [SlashCommand] { container.commands.commands(in: scopeFolder) }
+
+    private func send(_ text: String) {
         let continuing = (run?.sessionId != nil) ? run?.id : nil
         registry.start(scope: scope, prompt: text, recipe: nil, options: options, continuing: continuing)
-        draft = ""
+    }
+
+    private func execute(_ command: AppCommand) {
+        switch command {
+        case .resume:
+            showResume = true
+        case .newConversation, .recipes:
+            guard !busy else { return show("Espere a que termine el agente antes de cambiar de conversación.") }
+            registry.selection[scope.id] = nil
+            pendingRecipe = nil
+            composer.requestFocus()
+        case .setModel(let model):
+            options.model = model
+            show("Modelo de esta conversación: \(model.label).")
+        case .setPermissionMode(let mode):
+            options.permissionMode = mode
+            show("Permisos: \(mode.label).")
+        case .terminal:
+            registry.openInTerminal(scope: scope, run: run)
+        case .files:
+            let folder = scopeFolder
+            let since = run?.startedAt
+            Task {
+                sheetFiles = await Task.detached { since.map { GeneratedFilesScanner.scan(folder: folder, since: $0) } ?? [] }.value
+                showFiles = true
+            }
+        case .invalid(let message):
+            show(message)
+        }
+    }
+
+    private func resume(_ picked: AgentRun) {
+        showResume = false
+        guard !busy || picked.scope.id != scope.id else { return show("Espere a que termine el agente antes de cambiar de conversación.") }
+        if picked.scope.id == scope.id {
+            registry.selection[scope.id] = picked.id
+            pendingRecipe = nil
+            composer.requestFocus()
+        } else {
+            container.navigation.open(run: picked, registry: registry)
+        }
+        if picked.sessionId == nil { show("Esta conversación no tiene sesión guardada; el siguiente mensaje empezará una nueva.") }
+    }
+
+    private func show(_ message: String) {
+        notice = message
+        Task { try? await Task.sleep(for: .seconds(5)); if notice == message { notice = nil } }
     }
 
     private func runRecipe() {

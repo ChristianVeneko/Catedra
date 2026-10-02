@@ -20,10 +20,10 @@ The app is not sandboxed (it reads `~/Desktop/UFT` and runs `python3`) and is si
 Settings (⌘,) hold the workspace path, Python interpreter and SAIA credentials.
 
 ## Architecture (hexagonal)
-- `Domain/` pure types: Activity, ActivityState, Course, CountdownFormatter, ActivityDiff, Agenda, SyncLogParser; `Domain/Agent/` AgentScope, AgentRun, AgentEvent, AgentStreamParser, Recipe
+- `Domain/` pure types: Activity, ActivityState, Course, CountdownFormatter, ActivityDiff, Agenda, SyncLogParser; `Domain/Agent/` AgentScope, AgentRun, AgentEvent, AgentStreamParser, Recipe, SlashCommand, SlashCommandMatcher, SlashToken, AppCommand, SkillFrontmatter, PromptHistory, ScopeRelativePath
 - `Application/` use cases: LoadWorkspace, Sync, ImportFiles, RunAgent, RecipeCatalog
-- `Ports/` protocols: WorkspaceReading, MoodleSyncing, CredentialStoring, FileImporting, AgentRunning, AgentRunStoring, AgentNotifying, TerminalOpening
-- `Adapters/` FileSystemWorkspace, PythonSyncAdapter, KeychainCredentialStore, FileSystemImporter, WorkspaceWatcher, ClaudeCLIAgentRunner, ClaudeLocator, LoginShellEnvironment, JSONAgentRunStore, GeneratedFilesScanner, TerminalLauncher, UserNotificationAdapter
+- `Ports/` protocols: WorkspaceReading, MoodleSyncing, CredentialStoring, FileImporting, AgentRunning, AgentRunStoring, AgentNotifying, TerminalOpening, SlashCommandCatalogStoring, SlashCommandScanning
+- `Adapters/` FileSystemWorkspace, PythonSyncAdapter, KeychainCredentialStore, FileSystemImporter, WorkspaceWatcher, ClaudeCLIAgentRunner, ClaudeLocator, LoginShellEnvironment, JSONAgentRunStore, JSONSlashCommandCatalogStore, LocalSlashCommandScanner, GeneratedFilesScanner, TerminalLauncher, UserNotificationAdapter
 - `UI/` feature folders (Dashboard, Sidebar, ActivityDetail, Contents, Sync, Agent, Settings, Components)
 - `App/` composition root (`AppContainer`) and `@Observable` models
 
@@ -57,6 +57,34 @@ toolbar button). Claude loads the workspace `CLAUDE.md` from the cwd and its par
 - History (last 30 conversations per scope, with transcripts) is stored as JSON in
   `~/Library/Application Support/Catedra/agent-runs/`, never in the workspace. "Archivos generados" lists files under the
   scope folder modified since the run started. "Abrir en Terminal" resumes the session in Terminal.app.
+
+### Composer
+The composer is an AppKit `NSTextView` wrapped for SwiftUI (`ComposerTextView`), because SwiftUI cannot intercept
+Enter / Tab / Esc / arrows reliably on macOS. It grows from 1 to 8 lines and then scrolls.
+- **Enter** sends, **Shift+Enter** (or Option+Enter) inserts a newline, **⌘↩** also sends. **Esc** closes the suggestions
+  popup, then drops focus. While an agent runs you can keep typing a draft; sending is disabled and the button becomes Stop.
+- **↑ / ↓** with the caret on the first / last line (popup closed) cycle through the prompts previously sent in that
+  scope (derived from the stored runs; recipe templates are skipped).
+- Chips: model (per conversation: Predeterminado/Opus/Sonnet/Haiku) and permission mode. The paperclip opens an
+  `NSOpenPanel` restricted to the scope folder and inserts `@relative/path` (quoted when it has spaces); files dragged from
+  Finder onto the composer do the same. Files outside the scope folder are refused.
+
+### Slash commands
+Typing `/` at the start of the text or after whitespace opens a popup above the composer, grouped as **Cátedra**,
+**Skills** and **Comandos de Claude Code**. Ranking (`SlashCommandMatcher`): name prefix, alias prefix, word-boundary or
+substring on the name, substring in the description, then subsequence; case and diacritics are ignored. ↑/↓ move, Tab/Enter
+accept (inserts `/name `), Esc dismisses, click accepts.
+- Everything except the Cátedra commands is sent to Claude as part of the prompt (`/skill-name …` works in `-p` mode).
+- The catalog comes from the `system/commands_changed` stream event (fallback: `system/init.slash_commands` minus
+  `terminal_slash_commands`). The latest full catalog is cached in
+  `~/Library/Application Support/Catedra/slash-commands.json` and refreshed by every run, so autocomplete works before the
+  first run of a session. Without a cache, a local scan (no tokens spent) reads `SKILL.md` / `commands/*.md` frontmatter from
+  `~/.claude` and every `.claude` folder between the scope and the home directory. Terminal-only commands (`/doctor`,
+  `/login`, …) are hidden because they do nothing in headless mode.
+- Cátedra commands are handled by the app and never sent to Claude; they override same-named CLI builtins:
+  `/resume` (picker of past runs of this scope, optionally all scopes; continues with `--resume <session_id>`),
+  `/new` (alias `/clear`), `/model <opus|sonnet|haiku|predeterminado>`, `/permisos <aceptar|auto|sin-restricciones>`,
+  `/recetas`, `/terminal`, `/archivos`.
 
 ### Testing notes
 - `CATEDRA_LIVE_CLAUDE=1` enables a real-CLI smoke test (temp dir, model `haiku`). With xcodebuild, pass it as

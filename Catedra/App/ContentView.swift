@@ -32,6 +32,7 @@ struct ContentView: View {
         .task {
             await container.workspace.reload()
             await container.agents.load()
+            await container.commands.prepare(folder: container.settings.workspaceURL)
             if container.settings.claudePath.isEmpty { await container.settings.detectClaude() }
             if container.settings.pythonPath.isEmpty { await container.settings.detectPython() }
         }

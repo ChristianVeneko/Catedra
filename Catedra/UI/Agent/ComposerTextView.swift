@@ -1,0 +1,254 @@
+import SwiftUI
+import AppKit
+
+/// Keyboard and drop callbacks the AppKit text view needs from the composer.
+struct ComposerHandler {
+    var isPopupVisible: () -> Bool = { false }
+    var moveSelection: (Int) -> Void = { _ in }
+    var accept: () -> Void = {}
+    var dismissPopup: () -> Void = {}
+    var send: () -> Void = {}
+    var historyPrevious: () -> Bool = { false }
+    var historyNext: () -> Bool = { false }
+    var dropFiles: ([URL]) -> Void = { _ in }
+    var dropTargeted: (Bool) -> Void = { _ in }
+}
+
+/// Multi-line plain-text editor (1–8 lines, then scrolls) that owns Enter / Shift+Enter / Tab / Esc / arrow handling,
+/// which SwiftUI's `TextEditor` cannot intercept reliably on macOS.
+struct ComposerTextView: NSViewRepresentable {
+    let model: ComposerModel
+    let placeholder: String
+    let revision: Int
+    let focusToken: Int
+    let handler: ComposerHandler
+
+    static let font = NSFont.systemFont(ofSize: 14)
+    static let verticalInset: CGFloat = 4
+    static let maxLines = 8
+
+    func makeCoordinator() -> Coordinator { Coordinator(model: model) }
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let storage = NSTextStorage()
+        let layout = NSLayoutManager()
+        let container = NSTextContainer(size: NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
+        container.widthTracksTextView = true
+        storage.addLayoutManager(layout)
+        layout.addTextContainer(container)
+
+        let textView = ComposerNSTextView(frame: .zero, textContainer: container)
+        textView.delegate = context.coordinator
+        textView.font = Self.font
+        textView.textColor = NSColor.labelColor
+        textView.drawsBackground = false
+        textView.isRichText = false
+        textView.importsGraphics = false
+        textView.allowsUndo = true
+        textView.isAutomaticQuoteSubstitutionEnabled = false
+        textView.isAutomaticDashSubstitutionEnabled = false
+        textView.isAutomaticTextReplacementEnabled = false
+        textView.isAutomaticSpellingCorrectionEnabled = false
+        textView.smartInsertDeleteEnabled = false
+        textView.isVerticallyResizable = true
+        textView.isHorizontallyResizable = false
+        textView.autoresizingMask = [.width]
+        textView.textContainerInset = NSSize(width: 0, height: Self.verticalInset)
+        textView.placeholder = placeholder
+        textView.handler = handler
+        textView.registerForDraggedTypes([NSPasteboard.PasteboardType.fileURL])
+        textView.string = model.text
+        textView.setSelectedRange(model.selection)
+
+        let scroll = NSScrollView()
+        scroll.drawsBackground = false
+        scroll.hasVerticalScroller = true
+        scroll.autohidesScrollers = true
+        scroll.borderType = .noBorder
+        scroll.documentView = textView
+        context.coordinator.textView = textView
+        context.coordinator.appliedRevision = revision
+        context.coordinator.appliedFocus = focusToken
+        DispatchQueue.main.async { context.coordinator.reportHeight() }
+        return scroll
+    }
+
+    func updateNSView(_ scroll: NSScrollView, context: Context) {
+        let coordinator = context.coordinator
+        guard let textView = coordinator.textView else { return }
+        textView.handler = handler
+        textView.placeholder = placeholder
+        if coordinator.appliedRevision != revision {
+            coordinator.appliedRevision = revision
+            coordinator.isApplying = true
+            textView.string = model.text
+            let length = (model.text as NSString).length
+            let range = NSRange(location: min(model.selection.location, length), length: 0)
+            textView.setSelectedRange(range)
+            coordinator.isApplying = false
+            textView.needsDisplay = true
+            coordinator.reportHeight()
+        }
+        if coordinator.appliedFocus != focusToken {
+            coordinator.appliedFocus = focusToken
+            DispatchQueue.main.async { textView.window?.makeFirstResponder(textView) }
+        }
+    }
+
+    @MainActor
+    final class Coordinator: NSObject, NSTextViewDelegate {
+        let model: ComposerModel
+        weak var textView: ComposerNSTextView?
+        var appliedRevision = 0
+        var appliedFocus = 0
+        var isApplying = false
+        private var lastHeight: CGFloat = 0
+
+        init(model: ComposerModel) { self.model = model }
+
+        func textDidChange(_ notification: Notification) {
+            guard !isApplying, let textView else { return }
+            model.userEdited(text: textView.string, selection: textView.selectedRange())
+            reportHeight()
+        }
+
+        func textViewDidChangeSelection(_ notification: Notification) {
+            guard !isApplying, let textView else { return }
+            model.selectionMoved(textView.selectedRange())
+        }
+
+        func reportHeight() {
+            guard let textView else { return }
+            let height = textView.clampedContentHeight()
+            guard abs(height - lastHeight) > 0.5 else { return }
+            lastHeight = height
+            DispatchQueue.main.async { [model] in model.contentHeight = height }
+        }
+    }
+}
+
+final class ComposerNSTextView: NSTextView {
+    var handler = ComposerHandler()
+    var placeholder = ""
+
+    override var acceptsFirstResponder: Bool { true }
+
+    override func becomeFirstResponder() -> Bool {
+        let accepted = super.becomeFirstResponder()
+        if accepted { NotificationCenter.default.post(name: .composerFocusChanged, object: self, userInfo: ["focused": true]) }
+        return accepted
+    }
+
+    override func resignFirstResponder() -> Bool {
+        let accepted = super.resignFirstResponder()
+        if accepted { NotificationCenter.default.post(name: .composerFocusChanged, object: self, userInfo: ["focused": false]) }
+        return accepted
+    }
+
+    override func layout() {
+        super.layout()
+        (delegate as? ComposerTextView.Coordinator)?.reportHeight()
+    }
+
+    // MARK: Placeholder and sizing
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        guard string.isEmpty, !hasMarkedText() else { return }
+        let origin = NSPoint(x: textContainerInset.width + (textContainer?.lineFragmentPadding ?? 0), y: textContainerInset.height)
+        (placeholder as NSString).draw(at: origin, withAttributes: [.font: ComposerTextView.font, .foregroundColor: NSColor.placeholderTextColor])
+    }
+
+    func clampedContentHeight() -> CGFloat {
+        guard let layoutManager, let textContainer else { return 24 }
+        layoutManager.ensureLayout(for: textContainer)
+        let line = layoutManager.defaultLineHeight(for: ComposerTextView.font)
+        let inset = textContainerInset.height * 2
+        let used = layoutManager.usedRect(for: textContainer).height
+        let content = max(used, line) + inset
+        return min(content, line * CGFloat(ComposerTextView.maxLines) + inset)
+    }
+
+    // MARK: Keys
+
+    override func keyDown(with event: NSEvent) {
+        guard !hasMarkedText() else { super.keyDown(with: event); return }
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting([.capsLock, .numericPad, .function])
+        let popup = handler.isPopupVisible()
+        switch event.keyCode {
+        case 126: // up
+            if popup { handler.moveSelection(-1); return }
+            if flags.isEmpty, selectedRange().length == 0, caretOnFirstLine, handler.historyPrevious() { return }
+        case 125: // down
+            if popup { handler.moveSelection(1); return }
+            if flags.isEmpty, selectedRange().length == 0, caretOnLastLine, handler.historyNext() { return }
+        case 48: // tab
+            if popup, flags.isEmpty { handler.accept(); return }
+        case 36, 76: // return, keypad enter
+            if flags.contains(.shift) || flags.contains(.option) { insertNewline(nil); return }
+            if popup, flags.isEmpty { handler.accept(); return }
+            handler.send()
+            return
+        case 53: // escape
+            if popup { handler.dismissPopup() } else { window?.makeFirstResponder(nil) }
+            return
+        default: break
+        }
+        super.keyDown(with: event)
+    }
+
+    private var caretOnFirstLine: Bool {
+        guard let layoutManager, layoutManager.numberOfGlyphs > 0 else { return true }
+        var glyphRange = NSRange()
+        _ = layoutManager.lineFragmentRect(forGlyphAt: 0, effectiveRange: &glyphRange)
+        let chars = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
+        let caret = selectedRange().location
+        let ns = string as NSString
+        if caret == NSMaxRange(chars), caret > 0, ns.character(at: caret - 1) == 0x0A { return false }
+        return caret <= NSMaxRange(chars)
+    }
+
+    private var caretOnLastLine: Bool {
+        let ns = string as NSString
+        let caret = selectedRange().location
+        guard ns.length > 0, let layoutManager, layoutManager.numberOfGlyphs > 0 else { return true }
+        if ns.character(at: ns.length - 1) == 0x0A { return caret == ns.length }
+        var glyphRange = NSRange()
+        _ = layoutManager.lineFragmentRect(forGlyphAt: layoutManager.numberOfGlyphs - 1, effectiveRange: &glyphRange)
+        let chars = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
+        return caret >= chars.location
+    }
+
+    // MARK: Drag and drop of files from Finder
+
+    private func fileURLs(_ sender: NSDraggingInfo) -> [URL] {
+        (sender.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL]) ?? []
+    }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        guard !fileURLs(sender).isEmpty else { return super.draggingEntered(sender) }
+        handler.dropTargeted(true)
+        return .copy
+    }
+
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        fileURLs(sender).isEmpty ? super.draggingUpdated(sender) : .copy
+    }
+
+    override func draggingExited(_ sender: NSDraggingInfo?) {
+        handler.dropTargeted(false)
+        super.draggingExited(sender)
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        let urls = fileURLs(sender)
+        guard !urls.isEmpty else { return super.performDragOperation(sender) }
+        handler.dropTargeted(false)
+        handler.dropFiles(urls)
+        return true
+    }
+}
+
+extension Notification.Name {
+    static let composerFocusChanged = Notification.Name("CatedraComposerFocusChanged")
+}
