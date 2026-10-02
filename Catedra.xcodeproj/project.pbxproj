@@ -107,6 +107,7 @@
 		D48FC02F428530469B5B1CD2 /* SlashTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2485FE7FF6861B45BF83FD1 /* SlashTokenTests.swift */; };
 		DDA8879EB868B9F7E5E05E9B /* AntigravityStreamParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76F4645EB8DEA50838C51762 /* AntigravityStreamParserTests.swift */; };
 		DEEE85E729E9F6D4241860BF /* AppCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 487B1E3BFE97E4C12633F0E1 /* AppCommandTests.swift */; };
+		DFE844C2FF66F5EAF4C25EF2 /* sync_moodle.py in Resources */ = {isa = PBXBuildFile; fileRef = 00F6E9C855B3C828E9D4402A /* sync_moodle.py */; };
 		E20298357A366DB7E2B4449E /* TerminalLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0159487B35BB97080D5485 /* TerminalLauncher.swift */; };
 		E5BA3115A0D071B7034F06E8 /* RecipeCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83C0F96314E6446FF72CE161 /* RecipeCatalog.swift */; };
 		E775417592BF42CB6E5FC924 /* AntigravityProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 018CC839968BB0EAE623E1F2 /* AntigravityProvider.swift */; };
@@ -142,6 +143,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		00F6E9C855B3C828E9D4402A /* sync_moodle.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = sync_moodle.py; sourceTree = "<group>"; };
 		01119B7180FBA8AEFDE1C842 /* Catedra.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Catedra.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		018CC839968BB0EAE623E1F2 /* AntigravityProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AntigravityProvider.swift; sourceTree = "<group>"; };
 		037207A732E9AD8129650BCF /* SyncModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncModel.swift; sourceTree = "<group>"; };
@@ -275,6 +277,14 @@
 				5F60FF6656F7386B24664880 /* SettingsView.swift */,
 			);
 			path = Settings;
+			sourceTree = "<group>";
+		};
+		0C4FC4C3D026707D5ADBCCC9 /* Sync */ = {
+			isa = PBXGroup;
+			children = (
+				00F6E9C855B3C828E9D4402A /* sync_moodle.py */,
+			);
+			path = Sync;
 			sourceTree = "<group>";
 		};
 		13052CF49259C6640E0F301A /* Adapters */ = {
@@ -555,6 +565,7 @@
 			isa = PBXGroup;
 			children = (
 				11D1303E48EF6820EC0D845E /* Assets.xcassets */,
+				0C4FC4C3D026707D5ADBCCC9 /* Sync */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -644,6 +655,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FA30DE71206B876A945F4AB1 /* Assets.xcassets in Resources */,
+				DFE844C2FF66F5EAF4C25EF2 /* sync_moodle.py in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
