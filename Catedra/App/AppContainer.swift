@@ -12,7 +12,11 @@ final class AppContainer {
     let importFiles: ImportFilesUseCase
 
     init() {
-        let credentials = KeychainCredentialStore()
+        // Under tests (or with CATEDRA_SKIP_KEYCHAIN=1) never touch the Keychain: a fresh ad-hoc signature would trigger
+        // a blocking access prompt.
+        let env = ProcessInfo.processInfo.environment
+        let skipKeychain = env["XCTestConfigurationFilePath"] != nil || env["CATEDRA_SKIP_KEYCHAIN"] == "1"
+        let credentials: CredentialStoring = skipKeychain ? EmptyCredentialStore() : KeychainCredentialStore()
         let reader = FileSystemWorkspace()
         let settings = SettingsModel(store: credentials)
         let workspace = WorkspaceModel(settings: settings, reader: reader)
@@ -24,4 +28,11 @@ final class AppContainer {
             workspace: workspace)
         self.importFiles = ImportFilesUseCase(makeImporter: { FileSystemImporter(workspaceRoot: $0) })
     }
+}
+
+/// Credential store used when the Keychain must not be touched; holds nothing.
+struct EmptyCredentialStore: CredentialStoring {
+    func load() -> SAIACredentials? { nil }
+    func save(_ credentials: SAIACredentials) throws {}
+    func delete() throws {}
 }
