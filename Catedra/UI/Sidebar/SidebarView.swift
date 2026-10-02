@@ -1,0 +1,45 @@
+import SwiftUI
+
+struct SidebarView: View {
+    @Environment(AppContainer.self) private var container
+
+    var body: some View {
+        @Bindable var nav = container.navigation
+        List(selection: $nav.sidebar) {
+            Section {
+                Label("Hoy", systemImage: "sun.max").tag(SidebarItem.today)
+                Label("Todas las actividades", systemImage: "tray.full").tag(SidebarItem.all)
+            }
+            Section("Materias") {
+                ForEach(container.workspace.snapshot.courses) { course in
+                    CourseDisclosure(course: course)
+                }
+            }
+        }
+        .listStyle(.sidebar)
+        .navigationSplitViewColumnWidth(min: 210, ideal: 240, max: 300)
+    }
+}
+
+private struct CourseDisclosure: View {
+    let course: Course
+    @State private var expanded = false
+
+    var body: some View {
+        let color = CoursePalette.color(for: course)
+        DisclosureGroup(isExpanded: $expanded) {
+            Label("Actividades", systemImage: "checklist").tag(SidebarItem.activities(course.id))
+            Label("Contenidos", systemImage: "folder").tag(SidebarItem.contents(course.id))
+            Label("Foros", systemImage: "bubble.left.and.bubble.right").tag(SidebarItem.forums(course.id))
+        } label: {
+            Label {
+                Text(course.name).lineLimit(1)
+            } icon: {
+                Image(systemName: CoursePalette.symbol(for: course))
+                    .foregroundStyle(.white)
+                    .frame(width: 22, height: 22)
+                    .background(color.gradient, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            }
+        }
+    }
+}
