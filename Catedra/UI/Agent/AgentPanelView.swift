@@ -45,7 +45,7 @@ struct AgentPanelView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            Image(systemName: "sparkles").foregroundStyle(color)
+            ClaudeMarkView(size: 18)
             Text(run?.title ?? "Nueva conversación").font(.headline).lineLimit(1)
             if let run { StatusPill(status: run.status) }
             Spacer()

@@ -38,7 +38,7 @@ private struct CourseDisclosure: View {
                     Spacer()
                     if container.agents.isRunning(scopeID: course.id) { AgentActivityDot() }
                 }
-            } icon: { Image(systemName: "sparkles") }
+            } icon: { ClaudeMarkView(size: 14) }
             .tag(SidebarItem.agent(course.id))
         } label: {
             Label {

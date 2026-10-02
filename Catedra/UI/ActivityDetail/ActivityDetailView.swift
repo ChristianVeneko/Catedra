@@ -31,7 +31,7 @@ struct ActivityDetailView: View {
             ToolbarItem(placement: .principal) {
                 Picker("Vista", selection: $nav.activityTab) {
                     Text("Detalle").tag(ActivityDetailTab.detail)
-                    Label("Agente", systemImage: "sparkles").tag(ActivityDetailTab.agent)
+                    Label { Text("Agente") } icon: { ClaudeMarkImage.image(size: 13) }.tag(ActivityDetailTab.agent)
                 }
                 .pickerStyle(.segmented).frame(width: 200)
             }

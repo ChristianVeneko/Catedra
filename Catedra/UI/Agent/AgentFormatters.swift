@@ -14,7 +14,7 @@ enum AgentFormat {
         case "Write", "Edit", "MultiEdit", "NotebookEdit": "pencil"
         case "Bash": "terminal"
         case "Glob", "Grep": "magnifyingglass"
-        case "Skill": "sparkles"
+        case "Skill": "wand.and.stars"
         default: "wrench"
         }
     }
@@ -52,10 +52,7 @@ extension AgentRun.Status {
 /// Small pulsing indicator shown next to scopes with a running agent.
 struct AgentActivityDot: View {
     var body: some View {
-        Image(systemName: "sparkles")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.blue)
-            .symbolEffect(.pulse, options: .repeating)
+        ClaudeMarkView(size: 13, animation: .pulse)
             .help("Hay un agente en ejecución")
     }
 }

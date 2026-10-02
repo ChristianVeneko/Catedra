@@ -26,6 +26,7 @@
 		300D32182AADD03D8EE0635B /* LoginShellEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88AF021B965DAF69F1C014E7 /* LoginShellEnvironment.swift */; };
 		32ACD3F3F3302A0BC1D97C09 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 336F6A3F6245735271D2BBD3 /* AppContainer.swift */; };
 		3575BE5138CEAC1EA23591E6 /* ClaudeCLIAgentRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2A3088743E44CE6157E5762 /* ClaudeCLIAgentRunner.swift */; };
+		35F0C51C6BD5899D89FCEC36 /* ClaudeMark.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E6C843B7C34951347327C4 /* ClaudeMark.swift */; };
 		36870E36C931669A6DA21C62 /* ClaudeCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7CA90937E54741599D6F2F0 /* ClaudeCommandTests.swift */; };
 		4314D93E4BF2ED3494CE5A75 /* MarkdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A9A3E7638459515F7DE133B /* MarkdownView.swift */; };
 		445CA961841C316A34F18D7C /* SlashCommandCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC76A03EF9A3F6B154411B9E /* SlashCommandCatalogTests.swift */; };
@@ -209,6 +210,7 @@
 		D6C9B37A12DD38F423B37533 /* TestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSupport.swift; sourceTree = "<group>"; };
 		D9FECF4A68683F553C3D6AC1 /* ScopeRelativePathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScopeRelativePathTests.swift; sourceTree = "<group>"; };
 		DFCA7CC8EEBAE09618C69DE9 /* Ports.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ports.swift; sourceTree = "<group>"; };
+		E0E6C843B7C34951347327C4 /* ClaudeMark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeMark.swift; sourceTree = "<group>"; };
 		E548BCF7CC7DF5388149875C /* NavigationModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationModel.swift; sourceTree = "<group>"; };
 		E667A9C6B98CE8BB55D44941 /* AgentScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentScope.swift; sourceTree = "<group>"; };
 		E8DAAD47B98AAF69B288C20C /* AgentEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentEvent.swift; sourceTree = "<group>"; };
@@ -471,6 +473,7 @@
 		D8C836EF7EDA07B7A39107A4 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				E0E6C843B7C34951347327C4 /* ClaudeMark.swift */,
 				9E98E0585FC7E5B77030C404 /* CoursePalette.swift */,
 				139D0B0891399DE6B84E66DA /* DesignSystem.swift */,
 				0A8738EB5C87E6212AA90B79 /* Formatters.swift */,
@@ -641,6 +644,7 @@
 				3575BE5138CEAC1EA23591E6 /* ClaudeCLIAgentRunner.swift in Sources */,
 				CD116D9BB742CC435F038A76 /* ClaudeCommand.swift in Sources */,
 				6E52D89393B47B7E39129CB9 /* ClaudeLocator.swift in Sources */,
+				35F0C51C6BD5899D89FCEC36 /* ClaudeMark.swift in Sources */,
 				F37623196B0F1267339022D6 /* ContentView.swift in Sources */,
 				86C5FDF65CACA7259B3EF30B /* ContentsViews.swift in Sources */,
 				89A6B54860C048B07945DEC7 /* CountdownFormatter.swift in Sources */,

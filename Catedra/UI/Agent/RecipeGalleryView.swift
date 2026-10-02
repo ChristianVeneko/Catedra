@@ -10,7 +10,7 @@ struct RecipeGalleryView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Image(systemName: "sparkles").font(.system(size: 30)).foregroundStyle(color)
+                    ClaudeMarkView(size: 32)
                     Text("Agente").font(.largeTitle.weight(.bold))
                     Text(scope.kind == .course
                          ? "Trabaja con todo el contenido de «\(scope.title)». Elija una receta o escriba su propia instrucción abajo."

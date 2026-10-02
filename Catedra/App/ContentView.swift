@@ -49,7 +49,7 @@ struct ContentView: View {
     private var courseAgentButton: some View {
         if let course = currentCourse {
             Button { container.navigation.sidebar = .agent(course.id) } label: {
-                Label("Agente de la materia", systemImage: "sparkles")
+                ClaudeLabel("Agente de la materia")
             }
             .help("Abrir el agente de «\(course.name)»")
         }

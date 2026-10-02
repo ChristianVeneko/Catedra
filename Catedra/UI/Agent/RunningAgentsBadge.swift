@@ -9,9 +9,7 @@ struct RunningAgentsBadge: View {
         let running = container.agents.runningRuns
         if !running.isEmpty {
             Button { shown.toggle() } label: {
-                Label("\(running.count)", systemImage: "sparkles")
-                    .symbolEffect(.pulse, options: .repeating)
-                    .foregroundStyle(.blue)
+                Label { Text("\(running.count)").monospacedDigit() } icon: { ClaudeMarkView(size: 16, animation: .spin) }
             }
             .help("Agentes en ejecución")
             .popover(isPresented: $shown, arrowEdge: .bottom) {

@@ -119,7 +119,7 @@ enum RecipeCatalog {
             """),
         Recipe(
             id: "ask-notebooklm", title: "Preguntar a NotebookLM", subtitle: "Consulta los cuadernos de la materia",
-            symbol: "sparkles.rectangle.stack", applicability: .course,
+            symbol: "rectangle.stack", applicability: .course,
             template: coursePreamble + """
 
 
