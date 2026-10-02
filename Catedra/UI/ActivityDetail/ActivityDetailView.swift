@@ -49,7 +49,7 @@ struct ActivityDetailView: View {
                 if let statement = model.statement {
                     VStack(alignment: .leading, spacing: 10) {
                         SectionHeader(title: "Enunciado")
-                        MarkdownView(source: statement, skipFirstHeading: true)
+                        MarkdownView(source: statement, skipFirstHeading: true, baseURL: model.folderURL)
                             .padding(16).frame(maxWidth: .infinity, alignment: .leading).card()
                     }
                 }

@@ -4,6 +4,8 @@ import SwiftUI
 struct MarkdownView: View {
     let source: String
     var skipFirstHeading = false
+    /// Folder of the Markdown file; relative image paths resolve against it.
+    var baseURL: URL?
 
     var body: some View {
         let blocks = MarkdownParser.parse(source)
@@ -11,7 +13,7 @@ struct MarkdownView: View {
             ? Array(blocks.dropFirst()) : blocks
         VStack(alignment: .leading, spacing: 12) {
             ForEach(Array(visible.enumerated()), id: \.offset) { _, block in
-                BlockView(block: block)
+                BlockView(block: block, baseURL: baseURL)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -21,6 +23,7 @@ struct MarkdownView: View {
 
 private struct BlockView: View {
     let block: MarkdownBlock
+    let baseURL: URL?
 
     var body: some View {
         switch block {
@@ -49,9 +52,7 @@ private struct BlockView: View {
             }
             .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
         case .image(let alt, let url):
-            if let link = URL(string: url) {
-                Link(destination: link) { Label(alt.isEmpty ? "Imagen adjunta" : alt, systemImage: "photo") }
-            }
+            MarkdownImageView(alt: alt, source: MarkdownImageSource.resolve(url, relativeTo: baseURL), reference: url)
         case .quote(let text):
             HStack(spacing: 10) {
                 RoundedRectangle(cornerRadius: 2).fill(.secondary.opacity(0.5)).frame(width: 3)

@@ -49,7 +49,8 @@ struct FilePreviewView: View {
             switch url.pathExtension.lowercased() {
             case "md", "txt":
                 ScrollView {
-                    MarkdownView(source: (try? String(contentsOf: url, encoding: .utf8)) ?? "No se pudo leer el archivo.")
+                    MarkdownView(source: (try? String(contentsOf: url, encoding: .utf8)) ?? "No se pudo leer el archivo.",
+                                 baseURL: url.deletingLastPathComponent())
                         .padding(24).frame(maxWidth: 820, alignment: .leading).frame(maxWidth: .infinity)
                 }
             case "pdf":

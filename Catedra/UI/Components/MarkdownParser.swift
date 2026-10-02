@@ -20,7 +20,7 @@ enum MarkdownParser {
         var i = 0
 
         func flushParagraph() {
-            if !paragraph.isEmpty { blocks.append(.paragraph(paragraph.joined(separator: " "))); paragraph = [] }
+            if !paragraph.isEmpty { blocks.append(contentsOf: splitImages(paragraph.joined(separator: " "))); paragraph = [] }
         }
 
         while i < lines.count {
@@ -40,7 +40,6 @@ enum MarkdownParser {
             if t.count >= 3, Set(t).isSubset(of: ["-", "*", "_"]), Set(t).count == 1 {
                 flushParagraph(); blocks.append(.rule); i += 1; continue
             }
-            if let img = image(t) { flushParagraph(); blocks.append(img); i += 1; continue }
             if t.hasPrefix("|") {
                 flushParagraph()
                 var rows: [[String]] = []
@@ -87,12 +86,41 @@ enum MarkdownParser {
         return .heading(level: hashes, text: t.dropFirst(hashes).trimmingCharacters(in: .whitespaces))
     }
 
-    private static func image(_ t: String) -> MarkdownBlock? {
-        guard t.hasPrefix("!["), t.hasSuffix(")"), let mid = t.range(of: "](") else { return nil }
-        let alt = String(t[t.index(t.startIndex, offsetBy: 2)..<mid.lowerBound])
-        let url = String(t[mid.upperBound..<t.index(before: t.endIndex)])
-        guard !url.contains(")") else { return nil }
-        return .image(alt: alt, url: url)
+    /// Splits a paragraph at its inline `![alt](url)` images: text runs stay paragraphs, each image becomes a block.
+    static func splitImages(_ text: String) -> [MarkdownBlock] {
+        var blocks: [MarkdownBlock] = []
+        var pending = ""
+        var rest = Substring(text)
+        func flushText() {
+            let trimmed = pending.trimmingCharacters(in: .whitespaces)
+            if !trimmed.isEmpty { blocks.append(.paragraph(trimmed)) }
+            pending = ""
+        }
+        while let start = rest.range(of: "![") {
+            guard let mid = rest.range(of: "](", range: start.upperBound..<rest.endIndex),
+                  !rest[start.upperBound..<mid.lowerBound].contains("]"),
+                  let close = rest.range(of: ")", range: mid.upperBound..<rest.endIndex),
+                  let url = imageURL(String(rest[mid.upperBound..<close.lowerBound])) else {
+                pending += rest[rest.startIndex..<start.upperBound] // not an image: keep the marker as text
+                rest = rest[start.upperBound...]
+                continue
+            }
+            pending += rest[rest.startIndex..<start.lowerBound]
+            flushText()
+            blocks.append(.image(alt: String(rest[start.upperBound..<mid.lowerBound]), url: url))
+            rest = rest[close.upperBound...]
+        }
+        pending += rest
+        flushText()
+        return blocks
+    }
+
+    /// URL part of an image: `<url with spaces>`, or `url "title"`.
+    private static func imageURL(_ raw: String) -> String? {
+        var t = raw.trimmingCharacters(in: .whitespaces)
+        if t.hasPrefix("<"), let end = t.firstIndex(of: ">") { return String(t[t.index(after: t.startIndex)..<end]) }
+        if let quote = t.firstIndex(of: "\""), t[..<quote].last == " " { t = String(t[..<quote]).trimmingCharacters(in: .whitespaces) }
+        return t.isEmpty ? nil : t
     }
 
     private static func listMarker(_ t: String) -> (ordered: Bool, text: String)? {
