@@ -9,6 +9,7 @@ struct PythonSyncAdapter: MoodleSyncing {
             var args = ["sync_moodle.py", "--root", configuration.workspaceRoot.path]
             if !configuration.includeFiles { args.append("--no-files") }
             process.arguments = args
+            if configuration.lowPriority { process.qualityOfService = .utility }
             process.currentDirectoryURL = configuration.workspaceRoot.appendingPathComponent("_sistema", isDirectory: true)
 
             var env = ProcessInfo.processInfo.environment

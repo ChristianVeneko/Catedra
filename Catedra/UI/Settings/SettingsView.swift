@@ -22,6 +22,16 @@ struct SettingsView: View {
                 Text("Ícono con el tiempo que falta para la próxima entrega: naranja con menos de 24 h y rojo con menos de 3 h.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            Section("Sincronización") {
+                Picker("Al abrir la app", selection: $settings.launchSyncMode) {
+                    ForEach(LaunchSyncMode.allCases, id: \.self) { Text($0.label).tag($0) }
+                }
+                Stepper("No repetir si la última fue hace menos de \(settings.launchSyncMinIntervalMinutes) min",
+                        value: $settings.launchSyncMinIntervalMinutes, in: 0...720, step: 5)
+                    .disabled(settings.launchSyncMode == .off)
+                Text("Se ejecuta en segundo plano con prioridad baja, sin abrir ventanas, y solo si ya completó el asistente y guardó sus credenciales.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             RemindersSection(settings: settings)
             Section("Asistente de configuración") {
                 Button("Volver a ejecutar el asistente") { openWindow(id: "onboarding") }
@@ -64,7 +74,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 560, height: 900)
+        .frame(width: 560, height: 980)
         .onChange(of: settings.workspacePath) { _, _ in Task { await container.workspace.reload() } }
         .task(id: settings.pythonPath) { await settings.validatePython() }
         .task(id: settings.binaryPaths) {

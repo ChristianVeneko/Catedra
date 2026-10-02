@@ -37,7 +37,7 @@ final class AppContainer {
         self.sync = SyncModel(
             useCase: SyncUseCase(syncer: PythonSyncAdapter(), credentials: credentials, reader: reader,
                                   installer: SyncScriptInstaller.bundled()),
-            workspace: workspace)
+            workspace: workspace, notifier: UserNotificationAdapter())
         self.agents = AgentRunRegistry(runner: CLIAgentRunner(), store: JSONAgentRunStore(),
                                        notifier: UserNotificationAdapter(), terminal: TerminalLauncher(), settings: settings)
         let commands = SlashCommandCatalog(

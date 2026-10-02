@@ -44,7 +44,9 @@ struct DashboardView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(Formatters.greeting()).font(.largeTitle.weight(.bold))
-            if let last = container.workspace.snapshot.lastSync {
+            if container.sync.isRunning {
+                Label("Sincronizando…", systemImage: "arrow.triangle.2.circlepath").foregroundStyle(.secondary)
+            } else if let last = container.workspace.snapshot.lastSync {
                 Text("Última sincronización: \(Formatters.relative(last))").foregroundStyle(.secondary)
             } else {
                 Text("Aún no hay datos sincronizados.").foregroundStyle(.secondary)

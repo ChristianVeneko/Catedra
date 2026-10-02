@@ -23,6 +23,15 @@ struct ContentView: View {
             ToolbarItem(placement: .primaryAction) { RunningAgentsBadge() }
             ToolbarItem(placement: .primaryAction) { courseAgentButton }
             ToolbarItem(placement: .primaryAction) {
+                if container.sync.isRunning {
+                    Button { container.sync.isPresented = true } label: {
+                        Label("Sincronizando…", systemImage: "arrow.triangle.2.circlepath")
+                            .symbolEffect(.rotate, isActive: true)
+                    }
+                    .help("Sincronizando… (clic para ver el registro)")
+                }
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Menu {
                     Button("Sincronizar sin archivos") { container.sync.start(includeFiles: false) }
                 } label: {
@@ -34,6 +43,7 @@ struct ContentView: View {
             }
         }
         .sheet(isPresented: $sync.isPresented) { SyncSheet() }
+        .overlay(alignment: .bottom) { SyncBannerView() }
         .overlay {
             if container.palette.isPresented {
                 CommandPaletteView().transition(.opacity.combined(with: .scale(scale: 0.98)))
@@ -50,6 +60,7 @@ struct ContentView: View {
             await container.onboarding.refreshWarningIfNeeded()
             await container.workspace.reload()
             await container.reminders.refreshPermission()
+            container.startLaunchSyncIfNeeded()
             await container.agents.load()
             await container.commands.prepare(folder: container.settings.workspaceURL, provider: container.settings.agentProvider)
             await container.settings.refreshStatus(container.settings.agentProvider)

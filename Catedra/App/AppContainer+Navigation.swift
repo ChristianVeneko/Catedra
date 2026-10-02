@@ -32,6 +32,15 @@ extension AppContainer {
         return workspace.activity(id: navigation.selectedActivityID).flatMap { workspace.course(for: $0) }
     }
 
+    /// Background sync on launch, subject to `LaunchSyncPolicy`. Never runs under tests or with
+    /// `CATEDRA_DISABLE_LAUNCH_SYNC=1`.
+    func startLaunchSyncIfNeeded() {
+        let env = ProcessInfo.processInfo.environment
+        let disabled = env["CATEDRA_DISABLE_LAUNCH_SYNC"] == "1" || env["XCTestConfigurationFilePath"] != nil
+        sync.startOnLaunchIfNeeded(onboardingCompleted: UserDefaults.standard.bool(forKey: OnboardingModel.Keys.completed),
+                                   disabledByEnvironment: disabled)
+    }
+
     func openSettingsWindow() {
         NSApp.activate(ignoringOtherApps: true)
         NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)

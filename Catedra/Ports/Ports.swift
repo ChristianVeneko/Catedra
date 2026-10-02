@@ -13,6 +13,8 @@ struct SyncConfiguration: Sendable {
     var username: String
     var password: String
     var includeFiles: Bool
+    /// Background runs use utility QoS so they never compete with the foreground app.
+    var lowPriority = false
 }
 
 enum SyncOutput: Sendable, Equatable {

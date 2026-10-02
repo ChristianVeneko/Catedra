@@ -26,6 +26,10 @@ final class SettingsModel {
             if reminders != oldValue { onRemindersChanged?() }
         }
     }
+    /// Background sync on every launch.
+    var launchSyncMode: LaunchSyncMode { didSet { defaults.set(launchSyncMode.rawValue, forKey: Keys.launchMode) } }
+    var launchSyncMinIntervalMinutes: Int { didSet { defaults.set(launchSyncMinIntervalMinutes, forKey: Keys.launchInterval) } }
+    private(set) var lastSuccessfulSync: Date?
     var onRemindersChanged: (@MainActor () -> Void)?
     private(set) var statuses: [AgentProviderID: BinaryStatus] = [:]
     /// Models reported by `agy models` / `opencode models` (cached in UserDefaults).
@@ -41,6 +45,7 @@ final class SettingsModel {
     private let store: CredentialStoring
     private enum Keys {
         static let workspace = "workspacePath", python = "pythonPath"
+        static let launchMode = "launchSyncMode", launchInterval = "launchSyncMinutes", lastSuccess = "lastSuccessfulSync"
         static let menuBar = "menuBarVisible", menuBarCountdown = "menuBarShowsCountdown"
         static let remindersEnabled = "reminders.enabled", reminder48 = "reminders.48h", reminder24 = "reminders.24h",
                    reminder3 = "reminders.3h", reminderCustom = "reminders.custom", reminderCustomHours = "reminders.customHours"
@@ -56,6 +61,9 @@ final class SettingsModel {
         self.pythonPath = defaults.string(forKey: Keys.python) ?? ""
         self.menuBarVisible = defaults.object(forKey: Keys.menuBar) as? Bool ?? true
         self.menuBarShowsCountdown = defaults.object(forKey: Keys.menuBarCountdown) as? Bool ?? true
+        self.launchSyncMode = defaults.string(forKey: Keys.launchMode).flatMap(LaunchSyncMode.init(rawValue:)) ?? .full
+        self.launchSyncMinIntervalMinutes = max(0, defaults.object(forKey: Keys.launchInterval) as? Int ?? 30)
+        self.lastSuccessfulSync = defaults.object(forKey: Keys.lastSuccess) as? Date
         var reminders = ReminderPreferences()
         reminders.enabled = defaults.object(forKey: Keys.remindersEnabled) as? Bool ?? false
         reminders.at48h = defaults.object(forKey: Keys.reminder48) as? Bool ?? true
@@ -87,6 +95,11 @@ final class SettingsModel {
         let creds = store.load()
         self.username = creds?.username ?? ""
         self.hasStoredCredentials = creds != nil
+    }
+
+    func recordSuccessfulSync(at date: Date = .now) {
+        lastSuccessfulSync = date
+        defaults.set(date, forKey: Keys.lastSuccess)
     }
 
     private func persistReminders() {

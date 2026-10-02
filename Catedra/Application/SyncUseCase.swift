@@ -28,7 +28,7 @@ struct SyncUseCase: Sendable {
     /// Installs the bundled script into the workspace before every run; nil skips the step.
     var installer: SyncScriptInstalling?
 
-    func execute(root: URL, pythonPath: String, includeFiles: Bool) -> AsyncStream<SyncProgress> {
+    func execute(root: URL, pythonPath: String, includeFiles: Bool, lowPriority: Bool = false) -> AsyncStream<SyncProgress> {
         AsyncStream { continuation in
             let task = Task {
                 guard let creds = credentials.load(), !creds.username.isEmpty, !creds.password.isEmpty else {
@@ -44,7 +44,7 @@ struct SyncUseCase: Sendable {
                 }
                 let before = (try? reader.loadSnapshot(root: root))?.activities ?? []
                 let config = SyncConfiguration(workspaceRoot: root, pythonPath: pythonPath, username: creds.username,
-                                               password: creds.password, includeFiles: includeFiles)
+                                               password: creds.password, includeFiles: includeFiles, lowPriority: lowPriority)
                 var loginError: String?
                 var outcome: SyncOutcome = .failed(exitCode: -1)
                 for await output in syncer.run(config) {
