@@ -8,12 +8,17 @@ struct RunAgentUseCase: Sendable {
 
     /// Runs `request` against `run`, calling `onUpdate` after every change. Returns the final run.
     func execute(run initial: AgentRun, request: AgentRequest,
+                 onCatalog: (@Sendable ([SlashCommand], Bool) async -> Void)? = nil,
                  onUpdate: @Sendable (AgentRun) async -> Void) async -> AgentRun {
         var run = initial
         try? store.save(run)
         await onUpdate(run)
         do {
             for try await event in runner.start(request) {
+                if case .commandsCatalog(let commands, let complete) = event {
+                    await onCatalog?(commands, complete)
+                    continue
+                }
                 run.apply(event, at: now())
                 await onUpdate(run)
             }

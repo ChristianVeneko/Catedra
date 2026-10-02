@@ -11,6 +11,7 @@ final class AppContainer {
     let reader: WorkspaceReading
     let importFiles: ImportFilesUseCase
     let agents: AgentRunRegistry
+    let commands: SlashCommandCatalog
 
     init() {
         // Under tests (or with CATEDRA_SKIP_KEYCHAIN=1) never touch the Keychain: a fresh ad-hoc signature would trigger
@@ -29,6 +30,9 @@ final class AppContainer {
             workspace: workspace)
         self.agents = AgentRunRegistry(runner: ClaudeCLIAgentRunner(), store: JSONAgentRunStore(),
                                        notifier: UserNotificationAdapter(), terminal: TerminalLauncher(), settings: settings)
+        let commands = SlashCommandCatalog(store: JSONSlashCommandCatalogStore(), scanner: LocalSlashCommandScanner())
+        self.commands = commands
+        self.agents.onCommandsCatalog = { [weak commands] list, complete in commands?.ingest(list, complete: complete) }
         self.importFiles = ImportFilesUseCase(makeImporter: { FileSystemImporter(workspaceRoot: $0) })
     }
 }

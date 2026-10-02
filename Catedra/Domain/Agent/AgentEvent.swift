@@ -25,4 +25,6 @@ enum AgentEvent: Codable, Hashable, Sendable {
     case denials([PermissionDenial])
     case result(AgentResult)
     case error(String)
+    /// Slash commands reported by the CLI. `complete` is false for the names-only `init` fallback. Never part of a transcript.
+    case commandsCatalog([SlashCommand], complete: Bool)
 }

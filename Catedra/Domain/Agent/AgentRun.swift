@@ -72,6 +72,8 @@ struct AgentRun: Codable, Identifiable, Equatable, Sendable {
         case .error:
             if status == .running { status = .failed; finishedAt = date }
             transcript.append(event)
+        case .commandsCatalog:
+            break // consumed by the command catalog, not part of the conversation
         default:
             transcript.append(event)
         }
@@ -129,6 +131,7 @@ enum TranscriptItem: Identifiable, Equatable {
                 if !assistantInTurn, !result.text.isEmpty { items.append(.assistant(id: i, text: result.text)) }
             case .error(let text):
                 items.append(.error(id: i, text: text))
+            case .commandsCatalog: break
             }
         }
         return items

@@ -43,8 +43,32 @@ struct AgentStreamParser: Sendable {
     // MARK: - Per type
 
     private static func parseSystem(_ object: [String: Any]) -> [AgentEvent] {
-        guard object["subtype"] as? String == "init", let id = object["session_id"] as? String else { return [] }
-        return [.initialized(sessionId: id, model: object["model"] as? String)]
+        switch object["subtype"] as? String {
+        case "init":
+            guard let id = object["session_id"] as? String else { return [] }
+            var events: [AgentEvent] = [.initialized(sessionId: id, model: object["model"] as? String)]
+            if let names = object["slash_commands"] as? [String], !names.isEmpty {
+                let terminal = Set(object["terminal_slash_commands"] as? [String] ?? [])
+                let commands = names.filter { !terminal.contains($0) }.map {
+                    SlashCommand(name: $0, description: "", argumentHint: nil, aliases: [],
+                                 kind: SlashCommandCatalogPolicy.knownBuiltins.contains($0) ? .builtin : .skill)
+                }
+                events.append(.commandsCatalog(commands, complete: false))
+            }
+            return events
+        case "commands_changed":
+            guard let raw = object["commands"] as? [[String: Any]] else { return [] }
+            let commands: [SlashCommand] = raw.compactMap { item in
+                guard let name = item["name"] as? String, !name.isEmpty else { return nil }
+                let hint = (item["argumentHint"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+                return SlashCommand(name: name, description: item["description"] as? String ?? "", argumentHint: hint,
+                                    aliases: item["aliases"] as? [String] ?? [],
+                                    kind: item["builtin"] as? Bool == true ? .builtin : .skill)
+            }
+            return commands.isEmpty ? [] : [.commandsCatalog(commands, complete: true)]
+        default:
+            return []
+        }
     }
 
     private static func contentBlocks(_ object: [String: Any]) -> [[String: Any]] {

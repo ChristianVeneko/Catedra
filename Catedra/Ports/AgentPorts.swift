@@ -27,3 +27,14 @@ protocol AgentNotifying: Sendable {
 protocol TerminalOpening: Sendable {
     func openClaude(in folder: URL, executablePath: String, sessionId: String?) throws
 }
+
+protocol SlashCommandCatalogStoring: Sendable {
+    /// Last catalog reported by the CLI; empty when nothing is cached or the file is unreadable.
+    func load() -> [SlashCommand]
+    func save(_ commands: [SlashCommand]) throws
+}
+
+protocol SlashCommandScanning: Sendable {
+    /// Skills and custom commands found on disk for a working folder (user level plus its ancestors).
+    func scan(folder: URL) -> [SlashCommand]
+}

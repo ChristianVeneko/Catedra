@@ -16,6 +16,8 @@ final class AgentRunRegistry {
     private let settings: SettingsModel
     private var tasks: [UUID: Task<Void, Never>] = [:]
     private var authorizationRequested = false
+    /// Receives every slash-command catalog a run reports (wired by the composition root).
+    var onCommandsCatalog: (@MainActor ([SlashCommand], Bool) -> Void)?
 
     init(runner: AgentRunning, store: AgentRunStoring, notifier: AgentNotifying, terminal: TerminalOpening, settings: SettingsModel) {
         self.useCase = RunAgentUseCase(runner: runner, store: store)
@@ -40,6 +42,9 @@ final class AgentRunRegistry {
     func isRunning(inCourse folderName: String) -> Bool {
         runs.contains { $0.isRunning && $0.scope.courseFolderName == folderName }
     }
+
+    /// Prompts previously sent in a scope, oldest first (for ↑/↓ recall in the composer).
+    func promptHistory(in scopeID: String) -> [String] { PromptHistory.entries(from: runs(in: scopeID)) }
 
     // MARK: - Lifecycle
 
@@ -90,7 +95,9 @@ final class AgentRunRegistry {
         tasks[run.id] = Task { [weak self] in
             let registry = self
             await registry?.requestAuthorizationOnce()
-            let final = await useCase.execute(run: initial, request: request) { updated in
+            let final = await useCase.execute(run: initial, request: request, onCatalog: { commands, complete in
+                await registry?.receive(catalog: commands, complete: complete)
+            }) { updated in
                 await registry?.replace(updated)
             }
             await registry?.finished(final)
@@ -124,6 +131,10 @@ final class AgentRunRegistry {
 
     private func replace(_ run: AgentRun) {
         if let i = runs.firstIndex(where: { $0.id == run.id }) { runs[i] = run } else { runs.insert(run, at: 0) }
+    }
+
+    private func receive(catalog: [SlashCommand], complete: Bool) {
+        onCommandsCatalog?(catalog, complete)
     }
 
     private func requestAuthorizationOnce() async {

@@ -104,3 +104,31 @@ struct AgentStreamParserTests {
         #expect(ToolSummary.summarize(name: "Weird", input: [:]) == "")
     }
 }
+
+struct AgentStreamCommandsTests {
+    @Test func parsesCommandsChanged() {
+        let line = #"{"type":"system","subtype":"commands_changed","commands":[{"name":"normas-uft","description":"Normas","argumentHint":"[name]"},{"name":"clear","description":"Limpia","aliases":["reset","new"],"builtin":true},{"description":"sin nombre"}]}"#
+        let events = AgentStreamParser.parse(line: line)
+        #expect(events == [.commandsCatalog([
+            SlashCommand(name: "normas-uft", description: "Normas", argumentHint: "[name]", aliases: [], kind: .skill),
+            SlashCommand(name: "clear", description: "Limpia", argumentHint: nil, aliases: ["reset", "new"], kind: .builtin),
+        ], complete: true)])
+    }
+
+    @Test func initFallsBackToSlashCommandNamesExcludingTerminalOnes() {
+        let line = #"{"type":"system","subtype":"init","session_id":"abc","model":"m","slash_commands":["compact","normas-uft","doctor"],"terminal_slash_commands":["doctor"]}"#
+        let events = AgentStreamParser.parse(line: line)
+        #expect(events.count == 2)
+        #expect(events[0] == .initialized(sessionId: "abc", model: "m"))
+        guard case .commandsCatalog(let commands, let complete) = events[1] else { Issue.record("expected catalog"); return }
+        #expect(complete == false)
+        #expect(commands.map(\.name) == ["compact", "normas-uft"])
+        #expect(commands[0].kind == .builtin && commands[1].kind == .skill)
+    }
+
+    @Test func catalogEventsDoNotEnterTheTranscript() {
+        var run = AgentRun(scope: AgentScopeRef(kind: .course, folder: "c", title: "C"), prompt: "p", recipeID: nil, recipeTitle: nil, at: .now)
+        run.apply(.commandsCatalog([], complete: true), at: .now)
+        #expect(run.transcript == [.userPrompt("p")])
+    }
+}
