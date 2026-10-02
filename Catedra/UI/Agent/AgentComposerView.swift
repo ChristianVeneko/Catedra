@@ -40,7 +40,7 @@ struct AgentComposerView: View {
                     model.selectedIndex = index
                     accept()
                 }
-                .alignmentGuide(.top) { $0[.bottom] + 8 }
+                .offset(y: -(SlashSuggestionPopup.height(for: model) + 8))
                 .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .bottom)))
             }
         }

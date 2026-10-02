@@ -32,7 +32,7 @@ struct SlashSuggestionPopup: View {
                 .padding(.vertical, 4)
             }
             .scrollIndicators(.automatic)
-            .frame(height: height)
+            .frame(height: Self.height(for: model))
             .onChange(of: model.selectedIndex) { _, index in
                 guard model.flat.indices.contains(index) else { return }
                 proxy.scrollTo(model.flat[index].id)
@@ -46,7 +46,7 @@ struct SlashSuggestionPopup: View {
     }
 
     /// Rows plus section headers, capped at ~8 rows.
-    private var height: CGFloat {
+    static func height(for model: ComposerModel) -> CGFloat {
         let rows = CGFloat(model.flat.count)
         let headers = CGFloat(model.sections.count) * 26
         return min(rows * Self.rowHeight + headers + 8, CGFloat(Self.maxVisibleRows) * Self.rowHeight + 34)
