@@ -74,4 +74,16 @@ struct FileSystemWorkspaceTests {
         #expect(snap.activities.isEmpty)
         #expect(snap.courses.count == 1)
     }
+
+    @Test func contentTreeHidesGeneratedImageFolders() throws {
+        let root = try makeWorkspace()
+        let fm = FileManager.default
+        let unit = root.appendingPathComponent("08 - Teoria de Control II/contenidos/01 - Unidad")
+        try fm.createDirectory(at: unit.appendingPathComponent("_imagenes"), withIntermediateDirectories: true)
+        try "x".write(to: unit.appendingPathComponent("_imagenes/blob.jpg"), atomically: true, encoding: .utf8)
+        let course = try #require(Course(folderName: "08 - Teoria de Control II"))
+        let tree = FileSystemWorkspace().contentTree(root: root, course: course)
+        let names = tree.first?.children?.map(\.name) ?? []
+        #expect(names == ["_notas.md"])
+    }
 }

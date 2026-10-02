@@ -44,8 +44,11 @@ struct FileSystemWorkspace: WorkspaceReading {
 
     // MARK: - Helpers
 
+    /// Generated image folders: rendered inside Markdown, never listed as content.
+    static let hiddenFolderNames: Set<String> = ["_imagenes"]
+
     private func tree(at url: URL) -> [ContentNode] {
-        visibleChildren(of: url).map { child in
+        visibleChildren(of: url).filter { !Self.hiddenFolderNames.contains($0.lastPathComponent) }.map { child in
             let dir = isDirectory(child)
             return ContentNode(url: child, name: child.lastPathComponent, isDirectory: dir,
                                children: dir ? tree(at: child) : nil)

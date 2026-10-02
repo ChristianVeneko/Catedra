@@ -63,12 +63,21 @@ enum PythonLocator {
         "/usr/bin/python3",
     ]
 
+    /// Drops the `/usr/bin` shims (they open the Command Line Tools installer when the tools are absent).
+    static func executableCandidates(_ paths: [String], commandLineToolsInstalled: Bool) -> [String] {
+        var seen = Set<String>()
+        return paths.filter { seen.insert($0).inserted && (commandLineToolsInstalled || !$0.hasPrefix("/usr/bin/")) }
+    }
+
+    static func commandLineToolsInstalled() -> Bool {
+        BoundedProcess.run("/usr/bin/xcode-select", ["-p"], timeout: 5)?.status == 0
+    }
+
     static func detect() async -> String? {
-        var paths = candidates
-        if let resolved = await run("/usr/bin/env", ["python3", "-c", "import sys; print(sys.executable)"]).output?
-            .trimmingCharacters(in: .whitespacesAndNewlines), !resolved.isEmpty {
-            paths.insert(resolved, at: 0)
-        }
+        let hasTools = await Task.detached { commandLineToolsInstalled() }.value
+        // `command -v` only resolves the name; it never executes the shim.
+        let resolved = await Task.detached { BoundedProcess.which("python3") }.value
+        let paths = executableCandidates((resolved.map { [$0] } ?? []) + candidates, commandLineToolsInstalled: hasTools)
         for path in paths where FileManager.default.isExecutableFile(atPath: path) {
             if await hasRequests(path) { return path }
         }
