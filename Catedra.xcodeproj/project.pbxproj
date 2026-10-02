@@ -1,0 +1,582 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		04803A76EB59EF9D098A0739 /* ActivityKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41A6FF8BADE367716BA8B997 /* ActivityKind.swift */; };
+		0F935DA09E5E34A58B1BF05A /* Activity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04251BD9E6DED72B3E9CBAD6 /* Activity.swift */; };
+		1E27AFB1CFB17C2633C78208 /* WorkspaceWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A883E8674D1D21B16F62317D /* WorkspaceWatcher.swift */; };
+		2016A74D1AF07EC585BC0D96 /* CountdownFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C64DFAF06D24045AC57E6CC5 /* CountdownFormatterTests.swift */; };
+		240AE31FB7E2B61FBE10C3E6 /* SyncLogParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D78DF523ADEE4D3B609856 /* SyncLogParser.swift */; };
+		26F1ACABCD5BA567DB815F2E /* WorkspaceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F086DFE640EE44FA106F12C5 /* WorkspaceModels.swift */; };
+		293033AFFA939F951996043F /* ActivityJSONDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DBF1716DED46D735F958CC6 /* ActivityJSONDecoder.swift */; };
+		2A04DA31BB9D77713F095824 /* PythonSyncAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04F71AA5E664D502BEE6B4E6 /* PythonSyncAdapter.swift */; };
+		2F51F3FCC009A8CCFED358EA /* KeychainCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81F25F701506DF3CC2EEA6CD /* KeychainCredentialStore.swift */; };
+		5A4209F7E1B90B81A661CDE1 /* ActivityDiff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7D920F712D723D45E950C4 /* ActivityDiff.swift */; };
+		69AF99CEDEB2F67632548FFA /* CatedraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B811DA64366C55E656270DC6 /* CatedraApp.swift */; };
+		6F1DFA6E1B15B423888A0B50 /* SyncLogParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0643FFC402B3B58F5690730B /* SyncLogParserTests.swift */; };
+		795A95BE2AE0605904715607 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6C9B37A12DD38F423B37533 /* TestSupport.swift */; };
+		79AE9DCD5BD1B1575F46DA5D /* MarkdownParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C86584BC5706581984F701D /* MarkdownParser.swift */; };
+		821099C09B94CE40B6C85E40 /* FileSystemImporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54965FE2795094C459056E29 /* FileSystemImporterTests.swift */; };
+		89A6B54860C048B07945DEC7 /* CountdownFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F6BDE49CD0B76A582F11E8C /* CountdownFormatter.swift */; };
+		9AC15BA276D0A78D24903A17 /* ImportError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B3CA4545D37A8EE92A95161 /* ImportError.swift */; };
+		A5F17F327E1B5743F583762A /* Course.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F86DA0FC63B02E8E2B274F7 /* Course.swift */; };
+		B12A899E23A1F31D69E96C34 /* ActivityJSONDecoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DA49AE60B1599A53826E9F0 /* ActivityJSONDecoderTests.swift */; };
+		B15CCBC2608F1959EA226B2E /* ActivityStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DFF2AC7A1F46DF67D753BDB /* ActivityStateTests.swift */; };
+		B65C3B84B58234C69B9188AA /* FileSystemImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 336F7AE4C8D4C9A4FC6B6F72 /* FileSystemImporter.swift */; };
+		B863C7BE892F1AF9631F31DF /* MarkdownParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D148EE4352B98F650697A43 /* MarkdownParserTests.swift */; };
+		BDD70BC0736577EF3058C8CF /* Ports.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFCA7CC8EEBAE09618C69DE9 /* Ports.swift */; };
+		EDD62FC12C605870C3E8C12B /* ImportTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA9B1D95F10A789D8A2949E0 /* ImportTarget.swift */; };
+		FA30DE71206B876A945F4AB1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11D1303E48EF6820EC0D845E /* Assets.xcassets */; };
+		FA88A68AED010AB2FD8F883E /* FileSystemWorkspaceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70CAF3297B2D0A48134DC79B /* FileSystemWorkspaceTests.swift */; };
+		FB0F25AEFCCDB66F7A08CAF3 /* ActivityDiffTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F46910233621D682A5DAA648 /* ActivityDiffTests.swift */; };
+		FC7467F24EF0EA4B5B68B38A /* FileSystemWorkspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = D17C4ECD2E495132B1DEBDBE /* FileSystemWorkspace.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		F9DFAEE41CB5A46B3083CA28 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6FBD8A7CB9C1422783299AB5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CF98F7FCF1B51C66C498E1E3;
+			remoteInfo = Catedra;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		01119B7180FBA8AEFDE1C842 /* Catedra.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Catedra.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		04251BD9E6DED72B3E9CBAD6 /* Activity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Activity.swift; sourceTree = "<group>"; };
+		04F71AA5E664D502BEE6B4E6 /* PythonSyncAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PythonSyncAdapter.swift; sourceTree = "<group>"; };
+		0643FFC402B3B58F5690730B /* SyncLogParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncLogParserTests.swift; sourceTree = "<group>"; };
+		0C7D920F712D723D45E950C4 /* ActivityDiff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityDiff.swift; sourceTree = "<group>"; };
+		11D1303E48EF6820EC0D845E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1F6BDE49CD0B76A582F11E8C /* CountdownFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountdownFormatter.swift; sourceTree = "<group>"; };
+		336F7AE4C8D4C9A4FC6B6F72 /* FileSystemImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemImporter.swift; sourceTree = "<group>"; };
+		3B3CA4545D37A8EE92A95161 /* ImportError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportError.swift; sourceTree = "<group>"; };
+		41A6FF8BADE367716BA8B997 /* ActivityKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityKind.swift; sourceTree = "<group>"; };
+		54965FE2795094C459056E29 /* FileSystemImporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemImporterTests.swift; sourceTree = "<group>"; };
+		5C86584BC5706581984F701D /* MarkdownParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownParser.swift; sourceTree = "<group>"; };
+		5DA49AE60B1599A53826E9F0 /* ActivityJSONDecoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityJSONDecoderTests.swift; sourceTree = "<group>"; };
+		63D78DF523ADEE4D3B609856 /* SyncLogParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncLogParser.swift; sourceTree = "<group>"; };
+		6DBF1716DED46D735F958CC6 /* ActivityJSONDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityJSONDecoder.swift; sourceTree = "<group>"; };
+		6F86DA0FC63B02E8E2B274F7 /* Course.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Course.swift; sourceTree = "<group>"; };
+		70CAF3297B2D0A48134DC79B /* FileSystemWorkspaceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemWorkspaceTests.swift; sourceTree = "<group>"; };
+		81F25F701506DF3CC2EEA6CD /* KeychainCredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainCredentialStore.swift; sourceTree = "<group>"; };
+		8D148EE4352B98F650697A43 /* MarkdownParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownParserTests.swift; sourceTree = "<group>"; };
+		9DFF2AC7A1F46DF67D753BDB /* ActivityStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityStateTests.swift; sourceTree = "<group>"; };
+		A4E770C68E194F453A833AD4 /* CatedraTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CatedraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A883E8674D1D21B16F62317D /* WorkspaceWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceWatcher.swift; sourceTree = "<group>"; };
+		B811DA64366C55E656270DC6 /* CatedraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatedraApp.swift; sourceTree = "<group>"; };
+		C64DFAF06D24045AC57E6CC5 /* CountdownFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountdownFormatterTests.swift; sourceTree = "<group>"; };
+		D17C4ECD2E495132B1DEBDBE /* FileSystemWorkspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemWorkspace.swift; sourceTree = "<group>"; };
+		D6C9B37A12DD38F423B37533 /* TestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSupport.swift; sourceTree = "<group>"; };
+		DFCA7CC8EEBAE09618C69DE9 /* Ports.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ports.swift; sourceTree = "<group>"; };
+		F086DFE640EE44FA106F12C5 /* WorkspaceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceModels.swift; sourceTree = "<group>"; };
+		F46910233621D682A5DAA648 /* ActivityDiffTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityDiffTests.swift; sourceTree = "<group>"; };
+		FA9B1D95F10A789D8A2949E0 /* ImportTarget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportTarget.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		13052CF49259C6640E0F301A /* Adapters */ = {
+			isa = PBXGroup;
+			children = (
+				6DBF1716DED46D735F958CC6 /* ActivityJSONDecoder.swift */,
+				336F7AE4C8D4C9A4FC6B6F72 /* FileSystemImporter.swift */,
+				D17C4ECD2E495132B1DEBDBE /* FileSystemWorkspace.swift */,
+				81F25F701506DF3CC2EEA6CD /* KeychainCredentialStore.swift */,
+				04F71AA5E664D502BEE6B4E6 /* PythonSyncAdapter.swift */,
+				A883E8674D1D21B16F62317D /* WorkspaceWatcher.swift */,
+			);
+			path = Adapters;
+			sourceTree = "<group>";
+		};
+		318F38BA34177A0A6EE2BAA0 /* Ports */ = {
+			isa = PBXGroup;
+			children = (
+				3B3CA4545D37A8EE92A95161 /* ImportError.swift */,
+				DFCA7CC8EEBAE09618C69DE9 /* Ports.swift */,
+			);
+			path = Ports;
+			sourceTree = "<group>";
+		};
+		4FA0DEEB8CCC8038146E5143 /* Catedra */ = {
+			isa = PBXGroup;
+			children = (
+				13052CF49259C6640E0F301A /* Adapters */,
+				55B39BE57704073C9C84DF2F /* App */,
+				AAF7D2E2C62E6F21449332E4 /* Domain */,
+				318F38BA34177A0A6EE2BAA0 /* Ports */,
+				F20288E081F215B0E63177D8 /* Resources */,
+				693E4D936BEE01B96790791D /* UI */,
+			);
+			path = Catedra;
+			sourceTree = "<group>";
+		};
+		554261232219F6CE033E7AB9 /* CatedraTests */ = {
+			isa = PBXGroup;
+			children = (
+				F46910233621D682A5DAA648 /* ActivityDiffTests.swift */,
+				5DA49AE60B1599A53826E9F0 /* ActivityJSONDecoderTests.swift */,
+				9DFF2AC7A1F46DF67D753BDB /* ActivityStateTests.swift */,
+				C64DFAF06D24045AC57E6CC5 /* CountdownFormatterTests.swift */,
+				54965FE2795094C459056E29 /* FileSystemImporterTests.swift */,
+				70CAF3297B2D0A48134DC79B /* FileSystemWorkspaceTests.swift */,
+				8D148EE4352B98F650697A43 /* MarkdownParserTests.swift */,
+				0643FFC402B3B58F5690730B /* SyncLogParserTests.swift */,
+				D6C9B37A12DD38F423B37533 /* TestSupport.swift */,
+			);
+			path = CatedraTests;
+			sourceTree = "<group>";
+		};
+		55B39BE57704073C9C84DF2F /* App */ = {
+			isa = PBXGroup;
+			children = (
+				B811DA64366C55E656270DC6 /* CatedraApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		67A9C8F3E12B84D7F5E85FDD /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				01119B7180FBA8AEFDE1C842 /* Catedra.app */,
+				A4E770C68E194F453A833AD4 /* CatedraTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		693E4D936BEE01B96790791D /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				D8C836EF7EDA07B7A39107A4 /* Components */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		AAF7D2E2C62E6F21449332E4 /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				04251BD9E6DED72B3E9CBAD6 /* Activity.swift */,
+				0C7D920F712D723D45E950C4 /* ActivityDiff.swift */,
+				41A6FF8BADE367716BA8B997 /* ActivityKind.swift */,
+				1F6BDE49CD0B76A582F11E8C /* CountdownFormatter.swift */,
+				6F86DA0FC63B02E8E2B274F7 /* Course.swift */,
+				FA9B1D95F10A789D8A2949E0 /* ImportTarget.swift */,
+				63D78DF523ADEE4D3B609856 /* SyncLogParser.swift */,
+				F086DFE640EE44FA106F12C5 /* WorkspaceModels.swift */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		C5A7AD5FC01FA8D03B7C0282 = {
+			isa = PBXGroup;
+			children = (
+				4FA0DEEB8CCC8038146E5143 /* Catedra */,
+				554261232219F6CE033E7AB9 /* CatedraTests */,
+				67A9C8F3E12B84D7F5E85FDD /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D8C836EF7EDA07B7A39107A4 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				5C86584BC5706581984F701D /* MarkdownParser.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		F20288E081F215B0E63177D8 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				11D1303E48EF6820EC0D845E /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		CF98F7FCF1B51C66C498E1E3 /* Catedra */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9FBF08AFAFDFF57DF92C615E /* Build configuration list for PBXNativeTarget "Catedra" */;
+			buildPhases = (
+				2F9882D277921E661D8A1116 /* Sources */,
+				B239CFB9B4063641D796A7BF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Catedra;
+			packageProductDependencies = (
+			);
+			productName = Catedra;
+			productReference = 01119B7180FBA8AEFDE1C842 /* Catedra.app */;
+			productType = "com.apple.product-type.application";
+		};
+		D6ED8F2220D3B603BE6AC684 /* CatedraTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 86DF69A4BF4A3C26BE35801F /* Build configuration list for PBXNativeTarget "CatedraTests" */;
+			buildPhases = (
+				1D1756493019B7FDAC21C62D /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6B0DC0406669306D0CAD19C6 /* PBXTargetDependency */,
+			);
+			name = CatedraTests;
+			packageProductDependencies = (
+			);
+			productName = CatedraTests;
+			productReference = A4E770C68E194F453A833AD4 /* CatedraTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		6FBD8A7CB9C1422783299AB5 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					CF98F7FCF1B51C66C498E1E3 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Manual;
+					};
+					D6ED8F2220D3B603BE6AC684 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Manual;
+					};
+				};
+			};
+			buildConfigurationList = 75882231822253F92EA0F9F3 /* Build configuration list for PBXProject "Catedra" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = C5A7AD5FC01FA8D03B7C0282;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 67A9C8F3E12B84D7F5E85FDD /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CF98F7FCF1B51C66C498E1E3 /* Catedra */,
+				D6ED8F2220D3B603BE6AC684 /* CatedraTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B239CFB9B4063641D796A7BF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FA30DE71206B876A945F4AB1 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1D1756493019B7FDAC21C62D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FB0F25AEFCCDB66F7A08CAF3 /* ActivityDiffTests.swift in Sources */,
+				B12A899E23A1F31D69E96C34 /* ActivityJSONDecoderTests.swift in Sources */,
+				B15CCBC2608F1959EA226B2E /* ActivityStateTests.swift in Sources */,
+				2016A74D1AF07EC585BC0D96 /* CountdownFormatterTests.swift in Sources */,
+				821099C09B94CE40B6C85E40 /* FileSystemImporterTests.swift in Sources */,
+				FA88A68AED010AB2FD8F883E /* FileSystemWorkspaceTests.swift in Sources */,
+				B863C7BE892F1AF9631F31DF /* MarkdownParserTests.swift in Sources */,
+				6F1DFA6E1B15B423888A0B50 /* SyncLogParserTests.swift in Sources */,
+				795A95BE2AE0605904715607 /* TestSupport.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2F9882D277921E661D8A1116 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0F935DA09E5E34A58B1BF05A /* Activity.swift in Sources */,
+				5A4209F7E1B90B81A661CDE1 /* ActivityDiff.swift in Sources */,
+				293033AFFA939F951996043F /* ActivityJSONDecoder.swift in Sources */,
+				04803A76EB59EF9D098A0739 /* ActivityKind.swift in Sources */,
+				69AF99CEDEB2F67632548FFA /* CatedraApp.swift in Sources */,
+				89A6B54860C048B07945DEC7 /* CountdownFormatter.swift in Sources */,
+				A5F17F327E1B5743F583762A /* Course.swift in Sources */,
+				B65C3B84B58234C69B9188AA /* FileSystemImporter.swift in Sources */,
+				FC7467F24EF0EA4B5B68B38A /* FileSystemWorkspace.swift in Sources */,
+				9AC15BA276D0A78D24903A17 /* ImportError.swift in Sources */,
+				EDD62FC12C605870C3E8C12B /* ImportTarget.swift in Sources */,
+				2F51F3FCC009A8CCFED358EA /* KeychainCredentialStore.swift in Sources */,
+				79AE9DCD5BD1B1575F46DA5D /* MarkdownParser.swift in Sources */,
+				BDD70BC0736577EF3058C8CF /* Ports.swift in Sources */,
+				2A04DA31BB9D77713F095824 /* PythonSyncAdapter.swift in Sources */,
+				240AE31FB7E2B61FBE10C3E6 /* SyncLogParser.swift in Sources */,
+				26F1ACABCD5BA567DB815F2E /* WorkspaceModels.swift in Sources */,
+				1E27AFB1CFB17C2633C78208 /* WorkspaceWatcher.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		6B0DC0406669306D0CAD19C6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CF98F7FCF1B51C66C498E1E3 /* Catedra */;
+			targetProxy = F9DFAEE41CB5A46B3083CA28 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		33BC8C9C5AB55EEBD1E8C6D1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Cátedra";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cmendoza.catedra;
+				PRODUCT_NAME = Catedra;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		4F19DD92DFB74AEBD4746F35 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Cátedra";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cmendoza.catedra;
+				PRODUCT_NAME = Catedra;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		98EC48808A9DC6ABC3A9CFC5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.cmendoza.catedra.tests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Catedra.app/Contents/MacOS/Catedra";
+			};
+			name = Release;
+		};
+		A0739B91BF70D6C4AB536061 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		E76DC1F6C0888343BB9487AA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		EAD5A4AD1A1A192B8784D6F0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.cmendoza.catedra.tests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Catedra.app/Contents/MacOS/Catedra";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		75882231822253F92EA0F9F3 /* Build configuration list for PBXProject "Catedra" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E76DC1F6C0888343BB9487AA /* Debug */,
+				A0739B91BF70D6C4AB536061 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		86DF69A4BF4A3C26BE35801F /* Build configuration list for PBXNativeTarget "CatedraTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EAD5A4AD1A1A192B8784D6F0 /* Debug */,
+				98EC48808A9DC6ABC3A9CFC5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		9FBF08AFAFDFF57DF92C615E /* Build configuration list for PBXNativeTarget "Catedra" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4F19DD92DFB74AEBD4746F35 /* Debug */,
+				33BC8C9C5AB55EEBD1E8C6D1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 6FBD8A7CB9C1422783299AB5 /* Project object */;
+}
