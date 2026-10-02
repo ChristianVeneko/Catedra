@@ -12,6 +12,7 @@ final class AppContainer {
     let importFiles: ImportFilesUseCase
     let agents: AgentRunRegistry
     let commands: SlashCommandCatalog
+    let onboarding: OnboardingModel
 
     init() {
         // Under tests (or with CATEDRA_SKIP_KEYCHAIN=1) never touch the Keychain: a fresh ad-hoc signature would trigger
@@ -43,6 +44,12 @@ final class AppContainer {
         self.agents.knownCommands = { [weak commands] provider, folder in
             commands?.providerCommandNames(in: folder, provider: provider) ?? []
         }
+        let onboarding = OnboardingModel(settings: settings, auth: MoodleAuthChecker(), probe: DependencyProbe(),
+                                         commands: CommandStreamer(), installer: SyncScriptInstaller.bundled())
+        onboarding.reloadWorkspace = { [weak workspace] in await workspace?.reload() }
+        let syncModel = self.sync
+        onboarding.startSync = { syncModel.start(includeFiles: true) }
+        self.onboarding = onboarding
         self.importFiles = ImportFilesUseCase(makeImporter: { FileSystemImporter(workspaceRoot: $0) })
     }
 }
