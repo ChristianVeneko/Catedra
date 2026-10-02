@@ -28,7 +28,7 @@ struct RecipeCatalogTests {
 
     @Test func courseRecipes() {
         let ids = RecipeCatalog.recipes(for: .course(course)).map(\.id)
-        #expect(ids == ["course-summary", "study-plan", "ask-notebooklm", "organize-notes"])
+        #expect(ids == ["course-summary", "study-plan", "organize-notes"])
     }
 
     @Test func noExamRecipeAsksToAnswerALiveExam() {

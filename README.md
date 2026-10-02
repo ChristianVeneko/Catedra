@@ -69,7 +69,7 @@ the icons follow the run's provider. Each provider is an `AgentProvider` (argume
   All parsers are tolerant (unknown events ignored, malformed lines skipped).
 - Binaries are found by `BinaryLocator` (provider-specific well-known folders, then a login shell) and can be overridden in
   Settings, which also shows the version (`--version`) or the install command. The child PATH comes from the user's login
-  shell (cached) with the binary's own folder first, so `node`/`python3`/`nlm` resolve.
+  shell (cached) with the binary's own folder first, so `node`/`python3` resolve.
 - Stopping a run sends SIGINT (clean end of turn), SIGTERM after 4 s and SIGKILL after 3 s more (`CancellationPolicy`).
 - **OpenCode and Claude subscriptions:** do not sign in to OpenCode with a Claude Pro/Max subscription: Anthropic does not
   allow it. Use another provider or an API key. The same warning is shown in Settings.

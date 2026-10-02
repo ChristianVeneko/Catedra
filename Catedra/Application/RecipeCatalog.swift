@@ -118,20 +118,6 @@ enum RecipeCatalog {
             `apuntes/plan-de-estudio.md`.
             """),
         Recipe(
-            id: "ask-notebooklm", title: "Preguntar a NotebookLM", subtitle: "Consulta los cuadernos de la materia",
-            symbol: "rectangle.stack", applicability: .course,
-            template: coursePreamble + """
-
-
-            Tarea: usa los cuadernos de NotebookLM de esta materia, siguiendo la sección «NotebookLM» del \
-            CLAUDE.md del espacio de trabajo (comando `nlm`; el cuaderno «Materia completa» para preguntas \
-            generales y los cuadernos de unidad para preguntas puntuales). Responde a la siguiente pregunta y cita \
-            el material que devuelva NotebookLM; si no puedes consultar NotebookLM, dilo claramente en lugar de \
-            inventar la respuesta.
-
-            Pregunta: (escriba aquí su pregunta)
-            """),
-        Recipe(
             id: "organize-notes", title: "Organizar mis apuntes", subtitle: "Ordena y enlaza tus notas",
             symbol: "folder.badge.gearshape", applicability: .course,
             template: coursePreamble + """

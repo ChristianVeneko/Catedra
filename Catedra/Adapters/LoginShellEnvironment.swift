@@ -1,6 +1,6 @@
 import Foundation
 
-/// PATH of the user's login shell (cached), so tools the agent launches (python3, nlm, …) are found even
+/// PATH of the user's login shell (cached), so tools the agent launches (python3, node, …) are found even
 /// though a GUI app starts with a minimal environment.
 enum LoginShellEnvironment {
     private static let lock = NSLock()
