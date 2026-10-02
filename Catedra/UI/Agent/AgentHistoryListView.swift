@@ -22,6 +22,7 @@ struct AgentHistoryListView: View {
                 ForEach(runs) { run in
                     Button { registry.selection[scope.id] = run.id } label: {
                         HStack(spacing: 10) {
+                            AgentProviderMark(provider: run.provider, size: 16)
                             Image(systemName: run.status.symbol).foregroundStyle(run.status.tint)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(run.title).lineLimit(2).font(.headline)
@@ -29,7 +30,7 @@ struct AgentHistoryListView: View {
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                             Spacer()
-                            if run.isRunning { AgentActivityDot() }
+                            if run.isRunning { AgentActivityDot(providers: [run.provider]) }
                         }
                         .padding(.vertical, 2)
                         .contentShape(Rectangle())

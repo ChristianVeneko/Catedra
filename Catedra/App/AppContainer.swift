@@ -28,11 +28,20 @@ final class AppContainer {
         self.sync = SyncModel(
             useCase: SyncUseCase(syncer: PythonSyncAdapter(), credentials: credentials, reader: reader),
             workspace: workspace)
-        self.agents = AgentRunRegistry(runner: ClaudeCLIAgentRunner(), store: JSONAgentRunStore(),
+        self.agents = AgentRunRegistry(runner: CLIAgentRunner(), store: JSONAgentRunStore(),
                                        notifier: UserNotificationAdapter(), terminal: TerminalLauncher(), settings: settings)
-        let commands = SlashCommandCatalog(store: JSONSlashCommandCatalogStore(), scanner: LocalSlashCommandScanner())
+        let commands = SlashCommandCatalog(
+            store: JSONSlashCommandCatalogStore(),
+            scanners: Dictionary(uniqueKeysWithValues: AgentProviderID.allCases.map {
+                ($0, LocalSlashCommandScanner(layout: .layout(for: $0)) as SlashCommandScanning)
+            }))
         self.commands = commands
-        self.agents.onCommandsCatalog = { [weak commands] list, complete in commands?.ingest(list, complete: complete) }
+        self.agents.onCommandsCatalog = { [weak commands] list, complete, provider in
+            commands?.ingest(list, complete: complete, provider: provider)
+        }
+        self.agents.knownCommands = { [weak commands] provider, folder in
+            commands?.providerCommandNames(in: folder, provider: provider) ?? []
+        }
         self.importFiles = ImportFilesUseCase(makeImporter: { FileSystemImporter(workspaceRoot: $0) })
     }
 }

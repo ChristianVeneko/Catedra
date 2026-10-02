@@ -1,21 +1,19 @@
 import Foundation
 
-/// Opens Terminal.app in a folder, optionally resuming a Claude session, through a temporary `.command` file.
+/// Opens Terminal.app in a folder, optionally resuming an agent session, through a temporary `.command` file.
 struct TerminalLauncher: TerminalOpening {
     static func shellQuote(_ text: String) -> String {
         "'" + text.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
-    static func script(folder: URL, executablePath: String, sessionId: String?) -> String {
-        var command = shellQuote(executablePath)
-        if let sessionId, !sessionId.isEmpty { command += " --resume \(shellQuote(sessionId))" }
-        return "#!/bin/zsh\ncd \(shellQuote(folder.path)) && \(command)\n"
+    static func script(folder: URL, command: [String]) -> String {
+        "#!/bin/zsh\ncd \(shellQuote(folder.path)) && \(command.map(shellQuote).joined(separator: " "))\n"
     }
 
-    func openClaude(in folder: URL, executablePath: String, sessionId: String?) throws {
+    func open(in folder: URL, command: [String]) throws {
         let file = FileManager.default.temporaryDirectory
-            .appendingPathComponent("catedra-claude-\(UUID().uuidString).command")
-        try Self.script(folder: folder, executablePath: executablePath, sessionId: sessionId)
+            .appendingPathComponent("catedra-agent-\(UUID().uuidString).command")
+        try Self.script(folder: folder, command: command)
             .write(to: file, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: file.path)
         let process = Process()

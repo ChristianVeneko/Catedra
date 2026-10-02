@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RecipeGalleryView: View {
     let scope: AgentScope
+    let provider: AgentProviderID
     let recipes: [Recipe]
     let color: Color
     let select: (Recipe) -> Void
@@ -10,7 +11,7 @@ struct RecipeGalleryView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 6) {
-                    ClaudeMarkView(size: 32)
+                    AgentProviderMark(provider: provider, size: 32)
                     Text("Agente").font(.largeTitle.weight(.bold))
                     Text(scope.kind == .course
                          ? "Trabaja con todo el contenido de «\(scope.title)». Elija una receta o escriba su propia instrucción abajo."

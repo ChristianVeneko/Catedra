@@ -23,6 +23,14 @@ enum LoginShellEnvironment {
         return parts.joined(separator: ":")
     }
 
+    /// `path` with `directory` first (used so a script's sibling `node`/`bun` is found); no duplicates.
+    static func prepending(_ directory: String, to path: String?) -> String {
+        var parts = (path ?? "").split(separator: ":").map(String.init)
+        guard !parts.contains(directory) else { return parts.joined(separator: ":") }
+        parts.insert(directory, at: 0)
+        return parts.joined(separator: ":")
+    }
+
     /// Environment for the agent process. Blocking (spawns a login shell once); call off the main actor.
     static func childEnvironment(base: [String: String] = ProcessInfo.processInfo.environment) -> [String: String] {
         var env = base

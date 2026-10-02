@@ -36,16 +36,18 @@ private struct CourseDisclosure: View {
                 HStack {
                     Text("Agente")
                     Spacer()
-                    if container.agents.isRunning(scopeID: course.id) { AgentActivityDot() }
+                    let running = container.agents.runningProviders(scopeID: course.id)
+                    if !running.isEmpty { AgentActivityDot(providers: running) }
                 }
-            } icon: { ClaudeMarkView(size: 14) }
+            } icon: { AgentProviderMark(provider: container.settings.agentProvider, size: 14) }
             .tag(SidebarItem.agent(course.id))
         } label: {
             Label {
                 HStack(spacing: 6) {
                     Text(course.name).lineLimit(1)
                     Spacer(minLength: 0)
-                    if container.agents.isRunning(inCourse: course.folderName) { AgentActivityDot() }
+                    let running = container.agents.runningProviders(inCourse: course.folderName)
+                    if !running.isEmpty { AgentActivityDot(providers: running) }
                 }
             } icon: {
                 Image(systemName: CoursePalette.symbol(for: course))

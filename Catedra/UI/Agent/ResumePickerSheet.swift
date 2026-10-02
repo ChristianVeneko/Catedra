@@ -25,6 +25,7 @@ struct ResumePickerSheet: View {
                 List(visible) { run in
                     Button { pick(run) } label: {
                         HStack(spacing: 10) {
+                            AgentProviderMark(provider: run.provider, size: 16)
                             Image(systemName: run.status.symbol).foregroundStyle(run.status.tint)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(run.title).lineLimit(1)

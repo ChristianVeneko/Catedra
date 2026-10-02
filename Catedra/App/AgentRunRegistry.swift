@@ -17,7 +17,9 @@ final class AgentRunRegistry {
     private var tasks: [UUID: Task<Void, Never>] = [:]
     private var authorizationRequested = false
     /// Receives every slash-command catalog a run reports (wired by the composition root).
-    var onCommandsCatalog: (@MainActor ([SlashCommand], Bool) -> Void)?
+    var onCommandsCatalog: (@MainActor ([SlashCommand], Bool, AgentProviderID) -> Void)?
+    /// Names of a provider's custom commands for a folder (OpenCode runs a leading `/name` through `--command`).
+    var knownCommands: (@MainActor (AgentProviderID, URL) -> Set<String>)?
 
     init(runner: AgentRunning, store: AgentRunStoring, notifier: AgentNotifying, terminal: TerminalOpening, settings: SettingsModel) {
         self.useCase = RunAgentUseCase(runner: runner, store: store)
@@ -35,6 +37,22 @@ final class AgentRunRegistry {
 
     var runningRuns: [AgentRun] { runs.filter(\.isRunning) }
     var runningCount: Int { runningRuns.count }
+
+    /// Distinct providers with a running conversation, in first-seen order.
+    var runningProviders: [AgentProviderID] { Self.distinct(runningRuns.map(\.provider)) }
+
+    func runningProviders(scopeID: String) -> [AgentProviderID] {
+        Self.distinct(runs.filter { $0.isRunning && $0.scope.id == scopeID }.map(\.provider))
+    }
+
+    func runningProviders(inCourse folderName: String) -> [AgentProviderID] {
+        Self.distinct(runs.filter { $0.isRunning && $0.scope.courseFolderName == folderName }.map(\.provider))
+    }
+
+    private static func distinct(_ providers: [AgentProviderID]) -> [AgentProviderID] {
+        var seen = Set<AgentProviderID>()
+        return providers.filter { seen.insert($0).inserted }
+    }
 
     func isRunning(scopeID: String) -> Bool { runs.contains { $0.scope.id == scopeID && $0.isRunning } }
 
@@ -60,13 +78,16 @@ final class AgentRunRegistry {
         runs = live + loaded.filter { l in !live.contains { $0.id == l.id } }
     }
 
-    /// Starts a new conversation, or continues `continuing` (via `--resume`). Ignored while the scope is busy.
+    /// Starts a new conversation with the default provider, or continues `continuing` with that run's own provider
+    /// (even if the default changed since). Ignored while the scope is busy.
     func start(scope: AgentScope, prompt: String, recipe: Recipe?, options: AgentOptions, continuing runID: UUID? = nil) {
         let text = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isRunning(scopeID: scope.id) else { return }
         startErrors[scope.id] = nil
-        guard let executable = settings.resolvedClaudePath() else {
-            startErrors[scope.id] = "No se encontró Claude Code. Indique su ruta en Ajustes › Agentes."
+        let existingRun = runID.flatMap { id in self.run(id: id) }
+        let provider = existingRun?.provider ?? settings.agentProvider
+        guard let executable = settings.resolvedPath(for: provider) else {
+            startErrors[scope.id] = "No se encontró \(provider.displayName). Indique su ruta en Ajustes › Agente."
             return
         }
         let cwd = scope.url(in: settings.workspaceURL)
@@ -77,26 +98,27 @@ final class AgentRunRegistry {
 
         var run: AgentRun
         var resume: String?
-        if let runID, var existing = self.run(id: runID) {
+        if var existing = existingRun {
             existing.beginTurn(prompt: text, at: .now)
             resume = existing.sessionId
             run = existing
             replace(run)
         } else {
-            run = AgentRun(scope: scope.ref, prompt: text, recipeID: recipe?.id, recipeTitle: recipe?.title, at: .now)
+            run = AgentRun(provider: provider, scope: scope.ref, prompt: text, recipeID: recipe?.id, recipeTitle: recipe?.title, at: .now)
             runs.insert(run, at: 0)
         }
         selection[scope.id] = run.id
 
-        let request = AgentRequest(runID: run.id, executablePath: executable, cwd: cwd, prompt: text,
-                                   resumeSessionId: resume, options: options)
+        let request = AgentRequest(runID: run.id, provider: provider, executablePath: executable, cwd: cwd, prompt: text,
+                                   resumeSessionId: resume, options: options,
+                                   knownCommands: knownCommands?(provider, cwd) ?? [])
         let useCase = self.useCase
         let initial = run
         tasks[run.id] = Task { [weak self] in
             let registry = self
             await registry?.requestAuthorizationOnce()
             let final = await useCase.execute(run: initial, request: request, onCatalog: { commands, complete in
-                await registry?.receive(catalog: commands, complete: complete)
+                await registry?.receive(catalog: commands, complete: complete, provider: provider)
             }) { updated in
                 await registry?.replace(updated)
             }
@@ -116,12 +138,14 @@ final class AgentRunRegistry {
     }
 
     func openInTerminal(scope: AgentScope, run: AgentRun?) {
-        guard let executable = settings.resolvedClaudePath() else {
-            startErrors[scope.id] = "No se encontró Claude Code. Indique su ruta en Ajustes › Agentes."
+        let provider = run?.provider ?? settings.agentProvider
+        guard let executable = settings.resolvedPath(for: provider) else {
+            startErrors[scope.id] = "No se encontró \(provider.displayName). Indique su ruta en Ajustes › Agente."
             return
         }
+        let command = [executable] + AgentProviders.provider(for: provider).terminalResumeCommand(sessionId: run?.sessionId)
         do {
-            try terminal.openClaude(in: scope.url(in: settings.workspaceURL), executablePath: executable, sessionId: run?.sessionId)
+            try terminal.open(in: scope.url(in: settings.workspaceURL), command: command)
         } catch {
             startErrors[scope.id] = "No se pudo abrir Terminal: \(error.localizedDescription)"
         }
@@ -133,8 +157,8 @@ final class AgentRunRegistry {
         if let i = runs.firstIndex(where: { $0.id == run.id }) { runs[i] = run } else { runs.insert(run, at: 0) }
     }
 
-    private func receive(catalog: [SlashCommand], complete: Bool) {
-        onCommandsCatalog?(catalog, complete)
+    private func receive(catalog: [SlashCommand], complete: Bool, provider: AgentProviderID) {
+        onCommandsCatalog?(catalog, complete, provider)
     }
 
     private func requestAuthorizationOnce() async {

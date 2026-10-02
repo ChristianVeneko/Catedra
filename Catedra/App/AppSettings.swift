@@ -8,10 +8,19 @@ final class SettingsModel {
 
     var workspacePath: String { didSet { defaults.set(workspacePath, forKey: Keys.workspace) } }
     var pythonPath: String { didSet { defaults.set(pythonPath, forKey: Keys.python) } }
-    var claudePath: String { didSet { defaults.set(claudePath, forKey: Keys.claude) } }
-    var agentModel: AgentModel { didSet { defaults.set(agentModel.rawValue, forKey: Keys.agentModel) } }
-    var agentPermissionMode: AgentPermissionMode { didSet { defaults.set(agentPermissionMode.rawValue, forKey: Keys.agentMode) } }
-    var claudeStatus: String?
+    /// Provider used for new conversations.
+    var agentProvider: AgentProviderID { didSet { defaults.set(agentProvider.rawValue, forKey: Keys.provider) } }
+    /// Executable overrides; an empty value means "auto-detect".
+    var binaryPaths: [AgentProviderID: String] { didSet { persist(binaryPaths, prefix: Keys.path) } }
+    /// Default model per provider ("" keeps the CLI default).
+    var defaultModels: [AgentProviderID: String] { didSet { persist(defaultModels, prefix: Keys.model) } }
+    var defaultPermissions: [AgentProviderID: AgentPermissionLevel] {
+        didSet { persist(defaultPermissions.mapValues(\.rawValue), prefix: Keys.permission) }
+    }
+    private(set) var statuses: [AgentProviderID: BinaryStatus] = [:]
+    /// Models reported by `agy models` / `opencode models` (cached in UserDefaults).
+    private(set) var modelLists: [AgentProviderID: [AgentModelOption]]
+    private(set) var loadingModels: Set<AgentProviderID> = []
     var username: String
     var password: String = ""
     private(set) var hasStoredCredentials: Bool
@@ -21,8 +30,10 @@ final class SettingsModel {
     private let defaults: UserDefaults
     private let store: CredentialStoring
     private enum Keys {
-        static let workspace = "workspacePath", python = "pythonPath", claude = "claudePath"
-        static let agentModel = "agentModel", agentMode = "agentPermissionMode"
+        static let workspace = "workspacePath", python = "pythonPath"
+        static let provider = "agentProvider", path = "agentPath.", model = "agentModel.", permission = "agentPermission.", models = "agentModelList."
+        // Keys written before multi-provider support (Claude only).
+        static let legacyClaudePath = "claudePath", legacyModel = "agentModel", legacyMode = "agentPermissionMode"
     }
 
     init(store: CredentialStoring, defaults: UserDefaults = .standard) {
@@ -30,9 +41,26 @@ final class SettingsModel {
         self.defaults = defaults
         self.workspacePath = defaults.string(forKey: Keys.workspace) ?? Self.defaultWorkspacePath
         self.pythonPath = defaults.string(forKey: Keys.python) ?? ""
-        self.claudePath = defaults.string(forKey: Keys.claude) ?? ""
-        self.agentModel = defaults.string(forKey: Keys.agentModel).flatMap(AgentModel.init(rawValue:)) ?? .default
-        self.agentPermissionMode = defaults.string(forKey: Keys.agentMode).flatMap(AgentPermissionMode.init(rawValue:)) ?? .acceptEdits
+        self.agentProvider = defaults.string(forKey: Keys.provider).flatMap(AgentProviderID.init(rawValue:)) ?? .claude
+        var paths: [AgentProviderID: String] = [:], models: [AgentProviderID: String] = [:]
+        var permissions: [AgentProviderID: AgentPermissionLevel] = [:]
+        var lists: [AgentProviderID: [AgentModelOption]] = [:]
+        for provider in AgentProviderID.allCases {
+            paths[provider] = defaults.string(forKey: Keys.path + provider.rawValue) ?? ""
+            models[provider] = defaults.string(forKey: Keys.model + provider.rawValue) ?? ""
+            permissions[provider] = defaults.string(forKey: Keys.permission + provider.rawValue).flatMap(AgentPermissionLevel.init(storedValue:)) ?? .acceptEdits
+            if let data = defaults.data(forKey: Keys.models + provider.rawValue),
+               let list = try? JSONDecoder().decode([AgentModelOption].self, from: data) { lists[provider] = list }
+        }
+        // Carry Claude settings over from earlier versions.
+        if paths[.claude]?.isEmpty == true { paths[.claude] = defaults.string(forKey: Keys.legacyClaudePath) ?? "" }
+        if defaults.string(forKey: Keys.model + "claude") == nil, let old = defaults.string(forKey: Keys.legacyModel), old != "default" { models[.claude] = old }
+        if defaults.string(forKey: Keys.permission + "claude") == nil,
+           let old = defaults.string(forKey: Keys.legacyMode).flatMap(AgentPermissionLevel.init(storedValue:)) { permissions[.claude] = old }
+        self.binaryPaths = paths
+        self.defaultModels = models
+        self.defaultPermissions = permissions
+        self.modelLists = lists
         let creds = store.load()
         self.username = creds?.username ?? ""
         self.hasStoredCredentials = creds != nil
@@ -77,30 +105,67 @@ final class SettingsModel {
             : "El intérprete no existe o no tiene el módulo «requests»."
     }
 
-    // MARK: - Claude Code
+    // MARK: - Agent providers
+
+    enum BinaryStatus: Equatable {
+        case checking
+        case found(path: String, version: String?)
+        case notInstalled
+        case invalidOverride
+    }
+
+    private func persist<V>(_ values: [AgentProviderID: V], prefix: String) {
+        for (provider, value) in values { defaults.set(value, forKey: prefix + provider.rawValue) }
+    }
 
     /// Settings override when valid, otherwise auto-detected location.
-    func resolvedClaudePath(locator: ClaudeLocator = ClaudeLocator()) -> String? {
-        locator.locate(override: claudePath)
+    func resolvedPath(for provider: AgentProviderID, locator: BinaryLocator? = nil) -> String? {
+        (locator ?? BinaryLocator(provider: provider)).locate(override: binaryPaths[provider])
     }
 
-    func detectClaude() async {
-        claudeStatus = "Buscando…"
-        let found = await Task.detached { ClaudeLocator().locate() }.value
-        if let found {
-            claudePath = found
-            claudeStatus = "Detectado: \(found)"
-        } else {
-            claudeStatus = "No se encontró Claude Code. Instálelo o indique la ruta del ejecutable «claude»."
+    /// Model and permission a new conversation starts with for `provider`.
+    func defaultOptions(for provider: AgentProviderID) -> AgentOptions {
+        let model = defaultModels[provider].flatMap { $0.isEmpty ? nil : $0 }
+        return AgentOptions(model: model, permission: provider.normalized(defaultPermissions[provider] ?? .acceptEdits))
+    }
+
+    /// Models offered in pickers: the fixed list, or "Predeterminado" plus what the CLI reported.
+    func modelOptions(for provider: AgentProviderID) -> [AgentModelOption] {
+        switch provider.modelSource {
+        case .fixed(let list): list
+        case .listed: [.cliDefault] + (modelLists[provider] ?? [])
         }
     }
 
-    func validateClaude() {
-        guard !claudePath.isEmpty else {
-            claudeStatus = resolvedClaudePath().map { "Se usará: \($0)" } ?? "No se encontró Claude Code."
+    /// Finds the binary, stores it as the path and refreshes the status line.
+    func detect(_ provider: AgentProviderID) async {
+        statuses[provider] = .checking
+        let found = await Task.detached { BinaryLocator(provider: provider).locate() }.value
+        if let found { binaryPaths[provider] = found }
+        await refreshStatus(provider)
+    }
+
+    /// Re-evaluates the binary (override or auto-detected) and its version; loads the model list on first success.
+    func refreshStatus(_ provider: AgentProviderID) async {
+        let override = binaryPaths[provider] ?? ""
+        let path = resolvedPath(for: provider)
+        guard let path else {
+            statuses[provider] = override.isEmpty ? .notInstalled : .invalidOverride
             return
         }
-        claudeStatus = FileManager.default.isExecutableFile(atPath: claudePath)
-            ? "Ejecutable válido." : "La ruta no existe o no es ejecutable."
+        statuses[provider] = .checking
+        let version = await Task.detached { AgentBinaryProbe().version(of: path) }.value
+        statuses[provider] = .found(path: path, version: version)
+        if provider.modelListArguments != nil, modelLists[provider]?.isEmpty ?? true { await loadModels(for: provider) }
+    }
+
+    /// Runs `<bin> models` and caches the result.
+    func loadModels(for provider: AgentProviderID) async {
+        guard provider.modelListArguments != nil, let path = resolvedPath(for: provider), loadingModels.insert(provider).inserted else { return }
+        let list = await Task.detached { AgentBinaryProbe().models(for: provider, executablePath: path) }.value
+        loadingModels.remove(provider)
+        guard !list.isEmpty else { return }
+        modelLists[provider] = list
+        if let data = try? JSONEncoder().encode(list) { defaults.set(data, forKey: Keys.models + provider.rawValue) }
     }
 }

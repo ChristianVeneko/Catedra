@@ -22,6 +22,8 @@ struct AgentPanelView: View {
     private var registry: AgentRunRegistry { container.agents }
     private var run: AgentRun? { registry.selectedRun(in: scope.id) }
     private var busy: Bool { registry.isRunning(scopeID: scope.id) }
+    /// Provider of the open conversation, or the default one for a new conversation.
+    private var activeProvider: AgentProviderID { run?.provider ?? container.settings.agentProvider }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -42,11 +44,19 @@ struct AgentPanelView: View {
         }
         .quickLookPreview($quickLookURL, in: generated)
         .onAppear {
-            options = AgentOptions(model: container.settings.agentModel, permissionMode: container.settings.agentPermissionMode)
+            options = container.settings.defaultOptions(for: activeProvider)
+            composer.provider = activeProvider
             composer.history = PromptHistory(entries: registry.promptHistory(in: scope.id))
             composer.setAvailable(availableCommands)
         }
-        .task(id: scope.id) { await container.commands.prepare(folder: scopeFolder) }
+        .task(id: PrepareKey(scopeID: scope.id, provider: activeProvider)) {
+            await container.commands.prepare(folder: scopeFolder, provider: activeProvider)
+        }
+        .onChange(of: activeProvider) { _, provider in
+            options = container.settings.defaultOptions(for: provider)
+            composer.provider = provider
+            composer.setAvailable(availableCommands)
+        }
         .onChange(of: availableCommands) { _, commands in composer.setAvailable(commands) }
         .sheet(isPresented: $showResume) {
             ResumePickerSheet(scope: scope, runs: registry.runs, pick: resume, cancel: { showResume = false })
@@ -61,7 +71,7 @@ struct AgentPanelView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            ClaudeMarkView(size: 18)
+            AgentProviderMark(provider: activeProvider, size: 18)
             Text(run?.title ?? "Nueva conversación").font(.headline).lineLimit(1)
             if let run { StatusPill(status: run.status) }
             Spacer()
@@ -70,7 +80,7 @@ struct AgentPanelView: View {
                 .disabled(busy || (run == nil && pendingRecipe == nil))
                 .help("Nueva conversación")
             Button { registry.openInTerminal(scope: scope, run: run) } label: { Label("Abrir en Terminal", systemImage: "terminal") }
-                .help("Continuar esta conversación en Terminal")
+                .help("Continuar esta conversación en Terminal con \(activeProvider.displayName)")
         }
         .buttonStyle(.borderless)
         .labelStyle(.titleAndIcon)
@@ -86,7 +96,7 @@ struct AgentPanelView: View {
                     registry.selection[scope.id] = item.id
                     pendingRecipe = nil
                 } label: {
-                    Label("\(item.title) · \(Formatters.relative(item.startedAt))", systemImage: item.status.symbol)
+                    Label("\(item.title) · \(Formatters.relative(item.startedAt)) · \(item.provider.displayName)", systemImage: item.status.symbol)
                 }
             }
         } label: { Label("Historial", systemImage: "clock.arrow.circlepath") }
@@ -101,9 +111,10 @@ struct AgentPanelView: View {
                 RecipePromptEditor(recipe: recipe, text: $recipeText, color: color, run: runRecipe) { pendingRecipe = nil }
             }
         } else if let run {
-            AgentTranscriptView(items: TranscriptItem.build(from: run.transcript), color: color, isRunning: run.isRunning)
+            AgentTranscriptView(items: TranscriptItem.build(from: run.transcript), color: color, isRunning: run.isRunning,
+                                provider: run.provider)
         } else {
-            RecipeGalleryView(scope: scope, recipes: RecipeCatalog.recipes(for: scope), color: color) { recipe in
+            RecipeGalleryView(scope: scope, provider: activeProvider, recipes: RecipeCatalog.recipes(for: scope), color: color) { recipe in
                 recipeText = RecipeCatalog.render(recipe, scope: scope, activities: courseActivities, formatDate: Formatters.due)
                 pendingRecipe = recipe
             }
@@ -116,7 +127,8 @@ struct AgentPanelView: View {
                 Label(notice, systemImage: "info.circle").font(.caption).foregroundStyle(.secondary)
                     .transition(.opacity)
             }
-            AgentComposerView(model: composer, options: $options, scopeFolder: scopeFolder, color: color,
+            AgentComposerView(model: composer, options: $options, provider: activeProvider,
+                              models: container.settings.modelOptions(for: activeProvider), scopeFolder: scopeFolder, color: color,
                               hasRun: run != nil, busy: busy,
                               send: send, stop: { if let run { registry.stop(runID: run.id) } },
                               execute: execute)
@@ -133,7 +145,7 @@ struct AgentPanelView: View {
     }
 
     private var scopeFolder: URL { scope.url(in: container.settings.workspaceURL) }
-    private var availableCommands: [SlashCommand] { container.commands.commands(in: scopeFolder) }
+    private var availableCommands: [SlashCommand] { container.commands.commands(in: scopeFolder, provider: activeProvider) }
 
     private func send(_ text: String) {
         let continuing = (run?.sessionId != nil) ? run?.id : nil
@@ -151,10 +163,11 @@ struct AgentPanelView: View {
             composer.requestFocus()
         case .setModel(let model):
             options.model = model
-            show("Modelo de esta conversación: \(model.label).")
-        case .setPermissionMode(let mode):
-            options.permissionMode = mode
-            show("Permisos: \(mode.label).")
+            let label = container.settings.modelOptions(for: activeProvider).first { $0.id == model }?.label ?? model ?? "Predeterminado"
+            show("Modelo de esta conversación: \(label).")
+        case .setPermission(let level):
+            options.permission = level
+            show("Permisos: \(level.label).")
         case .terminal:
             registry.openInTerminal(scope: scope, run: run)
         case .files:
@@ -193,6 +206,7 @@ struct AgentPanelView: View {
         pendingRecipe = nil
     }
 
+    private struct PrepareKey: Hashable { let scopeID: String; let provider: AgentProviderID }
     private struct ScanKey: Hashable { let runID: UUID?; let finished: Date?; let running: Bool }
 
     private func scanGenerated() async {
@@ -224,7 +238,11 @@ private struct AgentFooter: View {
                 let end = run.finishedAt ?? context.date
                 Label(AgentFormat.elapsed(end.timeIntervalSince(run.turnStartedAt)), systemImage: "timer").monospacedDigit()
             }
-            if run.costUSD > 0 { Label(AgentFormat.cost(run.costUSD), systemImage: "dollarsign.circle").monospacedDigit() }
+            if run.costUSD > 0 {
+                Label(AgentFormat.cost(run.costUSD), systemImage: "dollarsign.circle").monospacedDigit()
+            } else if run.inputTokens + run.outputTokens > 0 {
+                Label(AgentFormat.tokens(input: run.inputTokens, output: run.outputTokens), systemImage: "number.circle").monospacedDigit()
+            }
             if let model = run.model { Label(model, systemImage: "cpu").lineLimit(1) }
             Spacer()
         }

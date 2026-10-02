@@ -22,23 +22,18 @@ struct SettingsView: View {
                 if let status = settings.pythonStatus { Text(status).font(.caption).foregroundStyle(.secondary) }
                 Text("Debe tener instalado el módulo «requests».").font(.caption).foregroundStyle(.secondary)
             }
-            Section("Agentes (Claude Code)") {
-                HStack {
-                    TextField("Ejecutable", text: $settings.claudePath, prompt: Text("/Users/…/.local/bin/claude"))
-                    Button("Detectar") { Task { await settings.detectClaude() } }
+            Section("Agente") {
+                Picker("Proveedor", selection: $settings.agentProvider) {
+                    ForEach(AgentProviderID.allCases) { provider in
+                        Label { Text(provider.displayName) } icon: { AgentProviderMarkImage.image(provider, size: 14) }.tag(provider)
+                    }
                 }
-                if let status = settings.claudeStatus { Text(status).font(.caption).foregroundStyle(.secondary) }
-                Picker("Modelo predeterminado", selection: $settings.agentModel) {
-                    ForEach(AgentModel.allCases) { Text($0.label).tag($0) }
-                }
-                Picker("Modo de permisos", selection: $settings.agentPermissionMode) {
-                    ForEach(AgentPermissionMode.allCases) { Text($0.label).tag($0) }
-                }
-                Text(settings.agentPermissionMode.detail).font(.caption).foregroundStyle(.secondary)
-                if settings.agentPermissionMode == .bypassPermissions {
-                    Label("Con «Sin restricciones» el agente puede modificar o borrar cualquier archivo y ejecutar comandos sin pedir permiso.",
-                          systemImage: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(.orange)
-                }
+                .pickerStyle(.segmented)
+                Text("Proveedor de las conversaciones nuevas. Cada conversación guardada sigue usando el suyo.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            ForEach(AgentProviderID.allCases) { provider in
+                ProviderSettingsSection(provider: provider, settings: settings)
             }
             Section("Cuenta de SAIA") {
                 TextField("Usuario", text: $settings.username)
@@ -55,10 +50,14 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 540, height: 700)
+        .frame(width: 560, height: 780)
         .onChange(of: settings.workspacePath) { _, _ in Task { await container.workspace.reload() } }
         .task(id: settings.pythonPath) { await settings.validatePython() }
-        .task(id: settings.claudePath) { settings.validateClaude() }
+        .task(id: settings.binaryPaths) {
+            try? await Task.sleep(for: .milliseconds(400)) // debounce typing; cancelled when the paths change again
+            guard !Task.isCancelled else { return }
+            for provider in AgentProviderID.allCases { await settings.refreshStatus(provider) }
+        }
     }
 
     private func chooseFolder() {
@@ -68,5 +67,120 @@ struct SettingsView: View {
         panel.directoryURL = container.settings.workspaceURL
         panel.prompt = "Elegir"
         if panel.runModal() == .OK, let url = panel.url { container.settings.workspacePath = url.path }
+    }
+}
+
+/// Binary path, status, default model and permission level of one provider.
+private struct ProviderSettingsSection: View {
+    let provider: AgentProviderID
+    @Bindable var settings: SettingsModel
+
+    private var pathBinding: Binding<String> {
+        Binding(get: { settings.binaryPaths[provider] ?? "" }, set: { settings.binaryPaths[provider] = $0 })
+    }
+
+    private var modelBinding: Binding<String> {
+        Binding(get: { settings.defaultModels[provider] ?? "" }, set: { settings.defaultModels[provider] = $0 })
+    }
+
+    private var permissionBinding: Binding<AgentPermissionLevel> {
+        Binding(get: { provider.normalized(settings.defaultPermissions[provider] ?? .acceptEdits) },
+                set: { settings.defaultPermissions[provider] = $0 })
+    }
+
+    var body: some View {
+        Section {
+            HStack {
+                TextField("Ejecutable", text: pathBinding,
+                          prompt: Text("Automático (\(provider.binaryName))"))
+                Button("Detectar") { Task { await settings.detect(provider) } }
+            }
+            statusLine
+            modelControls
+            Picker("Modo de permisos", selection: permissionBinding) {
+                ForEach(provider.supportedPermissions) { Text($0.label).tag($0) }
+            }
+            let level = provider.normalized(settings.defaultPermissions[provider] ?? .acceptEdits)
+            Text(level.detail(for: provider)).font(.caption).foregroundStyle(.secondary)
+            if level == .unrestricted {
+                Label("Con «Sin restricciones» el agente puede modificar o borrar cualquier archivo y ejecutar comandos sin pedir permiso.",
+                      systemImage: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(.orange)
+            }
+            if let warning = provider.tosWarning {
+                Label(warning, systemImage: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(.orange)
+            }
+        } header: {
+            Label { Text(provider.displayName) } icon: { AgentProviderMark(provider: provider, size: 14) }
+        }
+    }
+
+    @ViewBuilder
+    private var statusLine: some View {
+        switch settings.statuses[provider] {
+        case .checking?:
+            Label("Comprobando…", systemImage: "hourglass").font(.caption).foregroundStyle(.secondary)
+        case .found(let path, let version)?:
+            Label("Encontrado\(version.map { " · v\($0)" } ?? ""): \(path)", systemImage: "checkmark.circle.fill")
+                .font(.caption).foregroundStyle(.green).lineLimit(2).truncationMode(.middle)
+        case .invalidOverride?:
+            Label("La ruta no existe o no es ejecutable.", systemImage: "xmark.circle.fill").font(.caption).foregroundStyle(.red)
+            installHint
+        case .notInstalled?:
+            Label("No instalado", systemImage: "xmark.circle.fill").font(.caption).foregroundStyle(.red)
+            installHint
+        case nil:
+            EmptyView()
+        }
+    }
+
+    private var installHint: some View {
+        HStack(spacing: 8) {
+            Text(provider.installHint).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+            Spacer(minLength: 0)
+            if provider.installHintIsCommand {
+                Button("Copiar") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(provider.installHint, forType: .string)
+                }
+                .controlSize(.small)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var modelControls: some View {
+        let options = settings.modelOptions(for: provider)
+        let current = settings.defaultModels[provider] ?? ""
+        switch provider.modelSource {
+        case .fixed:
+            Picker("Modelo predeterminado", selection: modelBinding) {
+                ForEach(options) { Text($0.label).tag($0.key) }
+            }
+        case .listed(let allowsCustom):
+            if allowsCustom {
+                TextField("Modelo predeterminado", text: modelBinding,
+                          prompt: Text("proveedor/modelo (vacío = el de OpenCode)"))
+            } else {
+                Picker("Modelo predeterminado", selection: modelBinding) {
+                    ForEach(options) { Text($0.label).tag($0.key) }
+                    if !current.isEmpty, !options.contains(where: { $0.key == current }) { Text(current).tag(current) }
+                }
+            }
+            HStack {
+                if allowsCustom, options.count > 1 {
+                    Menu("Elegir de la lista") {
+                        ForEach(options.filter { $0.id != nil }.prefix(60)) { item in
+                            Button(item.label) { settings.defaultModels[provider] = item.key }
+                        }
+                    }
+                    .fixedSize()
+                }
+                Button(settings.loadingModels.contains(provider) ? "Cargando…" : "Cargar modelos") {
+                    Task { await settings.loadModels(for: provider) }
+                }
+                .disabled(settings.loadingModels.contains(provider))
+                Text("\(max(0, options.count - 1)) modelos disponibles").font(.caption).foregroundStyle(.secondary)
+            }
+        }
     }
 }

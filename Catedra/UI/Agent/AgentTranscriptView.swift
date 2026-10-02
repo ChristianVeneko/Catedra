@@ -4,6 +4,7 @@ struct AgentTranscriptView: View {
     let items: [TranscriptItem]
     let color: Color
     let isRunning: Bool
+    var provider: AgentProviderID = .claude
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -45,8 +46,11 @@ struct AgentTranscriptView: View {
                     .lineLimit(12)
             }
         case .assistant(_, let text):
-            MarkdownView(source: text)
-                .padding(14).frame(maxWidth: .infinity, alignment: .leading).card()
+            HStack(alignment: .top, spacing: 10) {
+                AgentProviderMark(provider: provider, size: 14).padding(.top, 3)
+                MarkdownView(source: text)
+            }
+            .padding(14).frame(maxWidth: .infinity, alignment: .leading).card()
         case .thinking(_, let text):
             DisclosureGroup {
                 Text(text).font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
@@ -121,7 +125,7 @@ struct DenialBanner: View {
                       systemImage: "lock.fill")
                     .lineLimit(2).truncationMode(.middle)
             }
-            Text("Cambie el modo de permisos (p. ej. «Automático») y vuelva a enviar el mensaje para permitir estas acciones.")
+            Text("Cambie el modo de permisos y vuelva a enviar el mensaje para permitir estas acciones.")
                 .font(.caption).foregroundStyle(.secondary)
         }
         .foregroundStyle(.orange)

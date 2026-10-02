@@ -2,36 +2,93 @@ import Testing
 import Foundation
 @testable import Catedra
 
-struct ClaudeCommandTests {
-    func request(model: AgentModel = .default, mode: AgentPermissionMode = .acceptEdits, resume: String? = nil) -> AgentRequest {
-        AgentRequest(runID: UUID(), executablePath: "/x/claude", cwd: URL(fileURLWithPath: "/tmp"), prompt: "Hola",
-                     resumeSessionId: resume, options: AgentOptions(model: model, permissionMode: mode))
+struct ProviderArgumentsTests {
+    let cwd = URL(fileURLWithPath: "/tmp/work")
+
+    func args(_ provider: AgentProviderID, model: String? = nil, level: AgentPermissionLevel = .acceptEdits,
+              resume: String? = nil, prompt: String = "Hola", known: Set<String> = []) -> [String] {
+        AgentProviders.provider(for: provider)
+            .buildArguments(prompt: prompt, options: AgentOptions(model: model, permission: level), resume: resume, cwd: cwd, knownCommands: known)
     }
 
-    @Test func baseArguments() {
-        #expect(ClaudeCommand.arguments(for: request()) == [
-            "-p", "Hola", "--output-format", "stream-json", "--verbose", "--permission-mode", "acceptEdits",
-        ])
+    // MARK: Claude (behavior must stay identical)
+
+    @Test func claudeBaseArguments() {
+        #expect(args(.claude) == ["-p", "Hola", "--output-format", "stream-json", "--verbose", "--permission-mode", "acceptEdits"])
     }
 
-    @Test func modelAndResumeAreAppended() {
-        let args = ClaudeCommand.arguments(for: request(model: .haiku, mode: .bypassPermissions, resume: "sess-1"))
-        #expect(args.suffix(4) == ["--model", "haiku", "--resume", "sess-1"])
-        #expect(args.contains("bypassPermissions"))
+    @Test func claudeModelAndResumeAreAppended() {
+        let a = args(.claude, model: "haiku", level: .unrestricted, resume: "sess-1")
+        #expect(a.suffix(4) == ["--model", "haiku", "--resume", "sess-1"])
+        #expect(a.contains("bypassPermissions"))
     }
 
-    @Test func defaultModelOmitsFlag() {
-        #expect(!ClaudeCommand.arguments(for: request(model: .default)).contains("--model"))
+    @Test func claudePermissionTable() {
+        #expect(ClaudeProvider.permissionMode(for: .readOnly) == "plan")
+        #expect(ClaudeProvider.permissionMode(for: .acceptEdits) == "acceptEdits")
+        #expect(ClaudeProvider.permissionMode(for: .automatic) == "auto")
+        #expect(ClaudeProvider.permissionMode(for: .unrestricted) == "bypassPermissions")
     }
 
-    @Test func emptyResumeIdIsIgnored() {
-        #expect(!ClaudeCommand.arguments(for: request(resume: "")).contains("--resume"))
+    @Test func claudeDefaultModelAndEmptyResumeOmitFlags() {
+        #expect(!args(.claude).contains("--model"))
+        #expect(!args(.claude, resume: "").contains("--resume"))
     }
+
+    // MARK: Antigravity
+
+    @Test func antigravityBaseArguments() {
+        #expect(args(.antigravity) == ["-p", "Hola", "--output-format", "stream-json", "--mode", "accept-edits"])
+    }
+
+    @Test func antigravityPermissionMapping() {
+        #expect(args(.antigravity, level: .readOnly).suffix(2) == ["--mode", "plan"])
+        #expect(args(.antigravity, level: .unrestricted).last == "--dangerously-skip-permissions")
+        #expect(!args(.antigravity, level: .unrestricted).contains("--mode"))
+        // "auto" does not exist in Antigravity: it degrades to accept-edits.
+        #expect(args(.antigravity, level: .automatic).suffix(2) == ["--mode", "accept-edits"])
+    }
+
+    @Test func antigravityModelAndConversationResume() {
+        let a = args(.antigravity, model: "gemini-3.1-pro-high", resume: "conv-1")
+        #expect(a.suffix(4) == ["--model", "gemini-3.1-pro-high", "--conversation", "conv-1"])
+    }
+
+    // MARK: OpenCode
+
+    @Test func openCodeBaseArguments() {
+        #expect(args(.opencode) == ["run", "--format", "json", "--dir", "/tmp/work", "--", "Hola"])
+    }
+
+    @Test func openCodePermissionMapping() {
+        #expect(args(.opencode, level: .readOnly).contains("plan"))
+        #expect(args(.opencode, level: .unrestricted).contains("--auto"))
+        #expect(!args(.opencode, level: .acceptEdits).contains("--auto"))
+        #expect(!args(.opencode, level: .acceptEdits).contains("--agent"))
+    }
+
+    @Test func openCodeModelAndSession() {
+        let a = args(.opencode, model: "ollama/qwen3", resume: "ses_1")
+        #expect(a.contains("-m") && a.contains("ollama/qwen3"))
+        #expect(a.contains("--session") && a.contains("ses_1"))
+        #expect(a.last == "Hola")
+    }
+
+    @Test func openCodeRunsKnownSlashCommandsWithCommandFlag() {
+        let a = args(.opencode, prompt: "/deploy staging now", known: ["deploy"])
+        #expect(a.contains("--command") && a.contains("deploy"))
+        #expect(a.suffix(2) == ["--", "staging now"])
+        let bare = args(.opencode, prompt: "/deploy", known: ["deploy"])
+        #expect(!bare.contains("--"))
+        #expect(args(.opencode, prompt: "/unknown x", known: ["deploy"]).suffix(2) == ["--", "/unknown x"])
+    }
+
+    // MARK: Terminal
 
     @Test func terminalScriptQuotesPathsAndResumes() {
-        let script = TerminalLauncher.script(folder: URL(fileURLWithPath: "/a b/it's"), executablePath: "/x/claude", sessionId: "s1")
-        #expect(script.contains("cd '/a b/it'\\''s' && '/x/claude' --resume 's1'"))
-        let plain = TerminalLauncher.script(folder: URL(fileURLWithPath: "/a"), executablePath: "/x/claude", sessionId: nil)
+        let script = TerminalLauncher.script(folder: URL(fileURLWithPath: "/a b/it's"), command: ["/x/claude", "--resume", "s1"])
+        #expect(script.contains("cd '/a b/it'\\''s' && '/x/claude' '--resume' 's1'"))
+        let plain = TerminalLauncher.script(folder: URL(fileURLWithPath: "/a"), command: ["/x/claude"])
         #expect(!plain.contains("--resume"))
     }
 }

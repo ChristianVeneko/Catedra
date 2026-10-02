@@ -20,6 +20,8 @@ final class ComposerModel {
     /// Height requested by the text view (already clamped to 1–8 lines).
     var contentHeight: CGFloat = 24
     var history = PromptHistory(entries: [])
+    /// Provider whose commands the popup lists (titles of its sections).
+    var provider: AgentProviderID = .claude
 
     /// Bumped on programmatic text changes so the AppKit view re-applies `text` and `selection`.
     private(set) var revision = 0
@@ -135,7 +137,7 @@ final class ComposerModel {
             return
         }
         let matches = SlashCommandMatcher.match(query: token.query, in: available, limit: Self.maxSuggestions)
-        sections = SlashCommandCatalogPolicy.sections(from: matches)
+        sections = SlashCommandCatalogPolicy.sections(from: matches, provider: provider)
         flat = sections.flatMap(\.matches)
         if lastQuery != token.query { selectedIndex = 0; lastQuery = token.query }
         selectedIndex = min(selectedIndex, max(0, flat.count - 1))

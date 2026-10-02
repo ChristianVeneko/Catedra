@@ -5,6 +5,8 @@ import AppKit
 struct AgentComposerView: View {
     let model: ComposerModel
     @Binding var options: AgentOptions
+    let provider: AgentProviderID
+    let models: [AgentModelOption]
     let scopeFolder: URL
     let color: Color
     let hasRun: Bool
@@ -14,6 +16,8 @@ struct AgentComposerView: View {
     let execute: (AppCommand) -> Void
 
     @State private var attachNotice: String?
+    @State private var showCustomModel = false
+    @State private var customModel = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -57,32 +61,84 @@ struct AgentComposerView: View {
         HStack(spacing: 8) {
             Button(action: attach) { Image(systemName: "paperclip").font(.system(size: 14, weight: .medium)) }
                 .buttonStyle(.plain).foregroundStyle(.secondary).help("Adjuntar archivos de esta carpeta (@ruta)")
+            modelMenu
             Menu {
-                ForEach(AgentModel.allCases) { item in
-                    Button { options.model = item } label: {
-                        if options.model == item { Label(item.label, systemImage: "checkmark") } else { Text(item.label) }
-                    }
-                }
-            } label: { Chip(symbol: "cpu", text: options.model.label) }
-                .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-                .help("Modelo para esta conversación")
-            Menu {
-                ForEach(AgentPermissionMode.allCases) { item in
-                    Button { options.permissionMode = item } label: {
-                        if options.permissionMode == item { Label(item.label, systemImage: "checkmark") } else { Text(item.label) }
+                ForEach(provider.supportedPermissions) { item in
+                    Button { options.permission = item } label: {
+                        if options.permission == item { Label(item.label, systemImage: "checkmark") } else { Text(item.label) }
                     }
                 }
             } label: {
-                Chip(symbol: options.permissionMode == .bypassPermissions ? "exclamationmark.shield" : "lock.shield",
-                     text: options.permissionMode.label,
-                     tint: options.permissionMode == .bypassPermissions ? .orange : nil)
+                Chip(symbol: options.permission == .unrestricted ? "exclamationmark.shield" : "lock.shield",
+                     text: options.permission.label,
+                     tint: options.permission == .unrestricted ? .orange : nil)
             }
             .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-            .help(options.permissionMode.detail)
+            .help(options.permission.detail(for: provider))
             Spacer(minLength: 0)
             sendButton
         }
         .font(.callout)
+    }
+
+    // MARK: - Model chip
+
+    private var allowsCustomModel: Bool {
+        if case .listed(let allowsCustom) = provider.modelSource { allowsCustom } else { false }
+    }
+
+    private var modelLabel: String {
+        guard let id = options.model else { return AgentModelOption.cliDefault.label }
+        return models.first { $0.id == id }?.label ?? id
+    }
+
+    /// Models grouped by `provider/` prefix when the list is long (OpenCode can report hundreds).
+    private var groupedModels: [(title: String, items: [AgentModelOption])]? {
+        guard models.count > 16 else { return nil }
+        let items = models.filter { $0.id != nil }
+        let groups = Dictionary(grouping: items) { $0.id?.split(separator: "/").first.map(String.init) ?? "otros" }
+        return groups.keys.sorted().map { ($0, groups[$0] ?? []) }
+    }
+
+    private func modelButton(_ item: AgentModelOption) -> some View {
+        Button { options.model = item.id } label: {
+            if options.model == item.id { Label(item.label, systemImage: "checkmark") } else { Text(item.label) }
+        }
+    }
+
+    private var modelMenu: some View {
+        Menu {
+            if let groups = groupedModels {
+                modelButton(.cliDefault)
+                ForEach(groups, id: \.title) { group in
+                    Menu(group.title) { ForEach(group.items) { modelButton($0) } }
+                }
+            } else {
+                ForEach(models) { modelButton($0) }
+            }
+            if allowsCustomModel {
+                Divider()
+                Button("Otro modelo…") { customModel = options.model ?? ""; showCustomModel = true }
+            }
+        } label: { Chip(symbol: "cpu", text: modelLabel) }
+            .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+            .help("Modelo para esta conversación")
+            .popover(isPresented: $showCustomModel, arrowEdge: .top) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Modelo (proveedor/modelo)").font(.headline)
+                    TextField("anthropic/claude-sonnet-4", text: $customModel)
+                        .textFieldStyle(.roundedBorder).frame(width: 260)
+                        .onSubmit(applyCustomModel)
+                    HStack { Spacer(); Button("Usar", action: applyCustomModel).keyboardShortcut(.defaultAction) }
+                }
+                .padding(14)
+            }
+    }
+
+    private func applyCustomModel() {
+        let value = customModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        options.model = value.isEmpty ? nil : value
+        showCustomModel = false
     }
 
     @ViewBuilder
@@ -126,7 +182,7 @@ struct AgentComposerView: View {
         guard !model.isBlank, !busy else { return }
         let text = model.text.trimmingCharacters(in: .whitespacesAndNewlines)
         model.history.record(text)
-        if let command = AppCommand.parse(text) {
+        if let command = AppCommand.parse(text, provider: provider, models: models) {
             model.clear()
             execute(command)
         } else {

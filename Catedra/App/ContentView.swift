@@ -32,8 +32,8 @@ struct ContentView: View {
         .task {
             await container.workspace.reload()
             await container.agents.load()
-            await container.commands.prepare(folder: container.settings.workspaceURL)
-            if container.settings.claudePath.isEmpty { await container.settings.detectClaude() }
+            await container.commands.prepare(folder: container.settings.workspaceURL, provider: container.settings.agentProvider)
+            await container.settings.refreshStatus(container.settings.agentProvider)
             if container.settings.pythonPath.isEmpty { await container.settings.detectPython() }
         }
         .frame(minWidth: 1000, minHeight: 640)
@@ -50,7 +50,7 @@ struct ContentView: View {
     private var courseAgentButton: some View {
         if let course = currentCourse {
             Button { container.navigation.sidebar = .agent(course.id) } label: {
-                ClaudeLabel("Agente de la materia")
+                AgentProviderLabel("Agente de la materia", provider: container.settings.agentProvider)
             }
             .help("Abrir el agente de «\(course.name)»")
         }

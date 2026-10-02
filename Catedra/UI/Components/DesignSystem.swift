@@ -103,7 +103,8 @@ struct ActivityCard: View {
                 Spacer(minLength: 8)
                 VStack(alignment: .trailing, spacing: 6) {
                     HStack(spacing: 6) {
-                        if container.agents.isRunning(scopeID: activity.id) { AgentActivityDot() }
+                        let running = container.agents.runningProviders(scopeID: activity.id)
+                        if !running.isEmpty { AgentActivityDot(providers: running) }
                         StatusBadge(state: state)
                     }
                     if let due = activity.due, state != .submitted { CountdownText(due: due, font: .system(.caption, design: .rounded)) }

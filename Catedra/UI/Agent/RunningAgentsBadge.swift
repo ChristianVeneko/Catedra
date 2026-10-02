@@ -9,7 +9,9 @@ struct RunningAgentsBadge: View {
         let running = container.agents.runningRuns
         if !running.isEmpty {
             Button { shown.toggle() } label: {
-                Label { Text("\(running.count)").monospacedDigit() } icon: { ClaudeMarkView(size: 16, animation: .spin) }
+                Label { Text("\(running.count)").monospacedDigit() } icon: {
+                    AgentProviderMarkStack(providers: container.agents.runningProviders, size: 16, animation: .spin)
+                }
             }
             .help("Agentes en ejecución")
             .popover(isPresented: $shown, arrowEdge: .bottom) {
@@ -21,6 +23,7 @@ struct RunningAgentsBadge: View {
                             shown = false
                         } label: {
                             HStack(spacing: 8) {
+                                AgentProviderMark(provider: run.provider, size: 14)
                                 ProgressView().controlSize(.small)
                                 VStack(alignment: .leading) {
                                     Text(run.scope.title).lineLimit(1)
