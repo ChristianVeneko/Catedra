@@ -39,3 +39,32 @@ protocol CredentialStoring: Sendable {
 protocol FileImporting: Sendable {
     func importFiles(_ sources: [URL], into target: ImportTarget, activityFolder: URL) throws -> [URL]
 }
+
+enum SyncScriptInstallAction: Sendable, Equatable {
+    case installed
+    case unchanged
+    /// The previous, different script was copied to `backup` before being replaced.
+    case updated(backup: URL)
+}
+
+struct SyncScriptInstallResult: Sendable, Equatable {
+    var scriptURL: URL
+    var action: SyncScriptInstallAction
+}
+
+enum SyncScriptInstallError: Error, Sendable, Equatable, LocalizedError {
+    case bundledScriptMissing
+    case writeFailed(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .bundledScriptMissing: "La aplicación no incluye el script de sincronización."
+        case .writeFailed(let detail): "No se pudo instalar el script de sincronización: \(detail)"
+        }
+    }
+}
+
+/// Makes sure the workspace holds the sync script shipped with the app.
+protocol SyncScriptInstalling: Sendable {
+    func install(workspace: URL) throws -> SyncScriptInstallResult
+}

@@ -12,6 +12,7 @@ enum SyncOutcome: Sendable, Equatable {
     case loginFailed(String)
     case missingCredentials
     case missingPython
+    case installFailed(String)
     case failed(exitCode: Int32)
 }
 
@@ -24,6 +25,8 @@ struct SyncUseCase: Sendable {
     let syncer: MoodleSyncing
     let credentials: CredentialStoring
     let reader: WorkspaceReading
+    /// Installs the bundled script into the workspace before every run; nil skips the step.
+    var installer: SyncScriptInstalling?
 
     func execute(root: URL, pythonPath: String, includeFiles: Bool) -> AsyncStream<SyncProgress> {
         AsyncStream { continuation in
@@ -33,6 +36,11 @@ struct SyncUseCase: Sendable {
                 }
                 guard !pythonPath.isEmpty, FileManager.default.isExecutableFile(atPath: pythonPath) else {
                     continuation.yield(.finished(.missingPython)); continuation.finish(); return
+                }
+                if let installer {
+                    do { _ = try installer.install(workspace: root) } catch {
+                        continuation.yield(.finished(.installFailed(error.localizedDescription))); continuation.finish(); return
+                    }
                 }
                 let before = (try? reader.loadSnapshot(root: root))?.activities ?? []
                 let config = SyncConfiguration(workspaceRoot: root, pythonPath: pythonPath, username: creds.username,

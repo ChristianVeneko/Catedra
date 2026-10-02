@@ -16,6 +16,7 @@
 		05EB9E5B4CE27A10E7697632 /* ResumePickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314A738875E37EDA6B034BE4 /* ResumePickerSheet.swift */; };
 		0F55CEDAEDF3B669FE449058 /* ActivityDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97D8D1FE7053E5F91B0D81A8 /* ActivityDetailView.swift */; };
 		0F935DA09E5E34A58B1BF05A /* Activity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04251BD9E6DED72B3E9CBAD6 /* Activity.swift */; };
+		0FD8B704093BB42733A03112 /* SyncScriptInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = B556A1A8AA2F095853BA34D0 /* SyncScriptInstaller.swift */; };
 		1BBB4D302D043DC9D9EE0806 /* OpenCodeEventParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC8128E669E4389EB24D445 /* OpenCodeEventParser.swift */; };
 		1E27AFB1CFB17C2633C78208 /* WorkspaceWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A883E8674D1D21B16F62317D /* WorkspaceWatcher.swift */; };
 		2016A74D1AF07EC585BC0D96 /* CountdownFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C64DFAF06D24045AC57E6CC5 /* CountdownFormatterTests.swift */; };
@@ -83,6 +84,7 @@
 		A5F17F327E1B5743F583762A /* Course.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F86DA0FC63B02E8E2B274F7 /* Course.swift */; };
 		A89A1347E09F9AC6C8829C62 /* CLIAgentRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E873439861F18E4C20DD8D7 /* CLIAgentRunner.swift */; };
 		A991D699CFC5C1FF19A139FD /* CLIAgentRunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F03021783EE68EB58B54D793 /* CLIAgentRunnerTests.swift */; };
+		AA84C49B80C5172E2A8356A9 /* SyncUseCaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 086A1B582064262D37FF8F3E /* SyncUseCaseTests.swift */; };
 		AAFE734BC446F6B9C7A26DDD /* AgentTranscriptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89B34B0F0E5582ADB0CE8BC4 /* AgentTranscriptView.swift */; };
 		AC13FDFF0648E4DA53E89E8F /* AgentScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = E667A9C6B98CE8BB55D44941 /* AgentScope.swift */; };
 		AD168F269B97B0DDD62C4BCC /* BinaryLocator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4E7B259F07F4068E810210 /* BinaryLocator.swift */; };
@@ -98,6 +100,7 @@
 		BF549319B470C66D25748825 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FBD7039C4A5B67BB61D5DB4 /* DashboardView.swift */; };
 		C47561C323F3E04C7459CAA4 /* SyncModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 037207A732E9AD8129650BCF /* SyncModel.swift */; };
 		C544AC6980B6DB46639ED412 /* JSONSlashCommandCatalogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69AC80B8F4937F7E18D9B7DA /* JSONSlashCommandCatalogStore.swift */; };
+		C81D5ABEA80854231F68363E /* SyncScriptInstallerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAA37CCCDA836621AD754E5 /* SyncScriptInstallerTests.swift */; };
 		C8383E594044EDF2243B98F7 /* AgentOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAFED54164E78129C94E6D5B /* AgentOptions.swift */; };
 		C83A3BF18C0EBD69C380D690 /* AgentProviderID.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB514CF90B65216460ED66F /* AgentProviderID.swift */; };
 		C9122577DDC81F745C357E39 /* JSONAgentRunStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B443A8CB060E972CA1BF3BAC /* JSONAgentRunStoreTests.swift */; };
@@ -152,9 +155,11 @@
 		04F71AA5E664D502BEE6B4E6 /* PythonSyncAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PythonSyncAdapter.swift; sourceTree = "<group>"; };
 		05507C329B7C592BB90CF474 /* AgentProviderMark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentProviderMark.swift; sourceTree = "<group>"; };
 		0643FFC402B3B58F5690730B /* SyncLogParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncLogParserTests.swift; sourceTree = "<group>"; };
+		086A1B582064262D37FF8F3E /* SyncUseCaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncUseCaseTests.swift; sourceTree = "<group>"; };
 		0A8738EB5C87E6212AA90B79 /* Formatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatters.swift; sourceTree = "<group>"; };
 		0ACD715C2B21B677CED65F5A /* ContentsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentsViews.swift; sourceTree = "<group>"; };
 		0C7D920F712D723D45E950C4 /* ActivityDiff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityDiff.swift; sourceTree = "<group>"; };
+		0CAA37CCCDA836621AD754E5 /* SyncScriptInstallerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncScriptInstallerTests.swift; sourceTree = "<group>"; };
 		113122A75C76A3DEEC48E433 /* antigravity-stream.ndjson */ = {isa = PBXFileReference; path = "antigravity-stream.ndjson"; sourceTree = "<group>"; };
 		11D1303E48EF6820EC0D845E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		139D0B0891399DE6B84E66DA /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
@@ -232,6 +237,7 @@
 		AFC91F120300A0556A42C3CE /* LocalSlashCommandScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalSlashCommandScanner.swift; sourceTree = "<group>"; };
 		B22635D6B9D89DF17729272F /* ActivityListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityListView.swift; sourceTree = "<group>"; };
 		B443A8CB060E972CA1BF3BAC /* JSONAgentRunStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONAgentRunStoreTests.swift; sourceTree = "<group>"; };
+		B556A1A8AA2F095853BA34D0 /* SyncScriptInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncScriptInstaller.swift; sourceTree = "<group>"; };
 		B811DA64366C55E656270DC6 /* CatedraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatedraApp.swift; sourceTree = "<group>"; };
 		B8DBC71AA594240D407EE3B6 /* ComposerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComposerModel.swift; sourceTree = "<group>"; };
 		BA3530D01F135F6FFFABA71A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -306,6 +312,7 @@
 				88AF021B965DAF69F1C014E7 /* LoginShellEnvironment.swift */,
 				94B9F14A0AA7D865EDEC2F2B /* OpenCodeProvider.swift */,
 				04F71AA5E664D502BEE6B4E6 /* PythonSyncAdapter.swift */,
+				B556A1A8AA2F095853BA34D0 /* SyncScriptInstaller.swift */,
 				AA0159487B35BB97080D5485 /* TerminalLauncher.swift */,
 				2025AB37DD4E3910DBAF1987 /* UserNotificationAdapter.swift */,
 				A883E8674D1D21B16F62317D /* WorkspaceWatcher.swift */,
@@ -420,6 +427,8 @@
 				97070E48FD01D50F94EE2A5E /* SlashCommandMatcherTests.swift */,
 				D2485FE7FF6861B45BF83FD1 /* SlashTokenTests.swift */,
 				0643FFC402B3B58F5690730B /* SyncLogParserTests.swift */,
+				0CAA37CCCDA836621AD754E5 /* SyncScriptInstallerTests.swift */,
+				086A1B582064262D37FF8F3E /* SyncUseCaseTests.swift */,
 				D6C9B37A12DD38F423B37533 /* TestSupport.swift */,
 				7673DB542BED38AD308E907E /* Fixtures */,
 			);
@@ -703,6 +712,8 @@
 				02E0F96F8A80DB62BDFD3A7C /* SlashCommandMatcherTests.swift in Sources */,
 				D48FC02F428530469B5B1CD2 /* SlashTokenTests.swift in Sources */,
 				6F1DFA6E1B15B423888A0B50 /* SyncLogParserTests.swift in Sources */,
+				C81D5ABEA80854231F68363E /* SyncScriptInstallerTests.swift in Sources */,
+				AA84C49B80C5172E2A8356A9 /* SyncUseCaseTests.swift in Sources */,
 				795A95BE2AE0605904715607 /* TestSupport.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -794,6 +805,7 @@
 				00D9B06334E8397879AB062F /* SlashToken.swift in Sources */,
 				240AE31FB7E2B61FBE10C3E6 /* SyncLogParser.swift in Sources */,
 				C47561C323F3E04C7459CAA4 /* SyncModel.swift in Sources */,
+				0FD8B704093BB42733A03112 /* SyncScriptInstaller.swift in Sources */,
 				03A814AC918582988420CDCF /* SyncSheet.swift in Sources */,
 				7513955DAA6623C26E660669 /* SyncUseCase.swift in Sources */,
 				E20298357A366DB7E2B4449E /* TerminalLauncher.swift in Sources */,

@@ -26,7 +26,8 @@ final class AppContainer {
         self.settings = settings
         self.workspace = workspace
         self.sync = SyncModel(
-            useCase: SyncUseCase(syncer: PythonSyncAdapter(), credentials: credentials, reader: reader),
+            useCase: SyncUseCase(syncer: PythonSyncAdapter(), credentials: credentials, reader: reader,
+                                  installer: SyncScriptInstaller.bundled()),
             workspace: workspace)
         self.agents = AgentRunRegistry(runner: CLIAgentRunner(), store: JSONAgentRunStore(),
                                        notifier: UserNotificationAdapter(), terminal: TerminalLauncher(), settings: settings)

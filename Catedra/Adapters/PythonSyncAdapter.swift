@@ -1,12 +1,12 @@
 import Foundation
 
-/// Runs `_sistema/sync_moodle.py` and streams its output. Credentials go only through the process environment.
+/// Runs the installed `_sistema/sync_moodle.py` (see `SyncScriptInstaller`) with `--root <workspace>` and streams its output. Credentials go only through the process environment.
 struct PythonSyncAdapter: MoodleSyncing {
     func run(_ configuration: SyncConfiguration) -> AsyncStream<SyncOutput> {
         AsyncStream { continuation in
             let process = Process()
             process.executableURL = URL(fileURLWithPath: configuration.pythonPath)
-            var args = ["sync_moodle.py"]
+            var args = ["sync_moodle.py", "--root", configuration.workspaceRoot.path]
             if !configuration.includeFiles { args.append("--no-files") }
             process.arguments = args
             process.currentDirectoryURL = configuration.workspaceRoot.appendingPathComponent("_sistema", isDirectory: true)

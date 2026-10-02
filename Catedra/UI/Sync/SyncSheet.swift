@@ -102,6 +102,8 @@ private struct OutcomeView: View {
             message("Aún no hay credenciales guardadas. Ingréselas en Ajustes para sincronizar.")
         case .missingPython:
             message("No se encontró un intérprete de Python válido. Configure uno en Ajustes.")
+        case .installFailed(let detail):
+            message("No se pudo preparar el script de sincronización. \(detail)")
         case .failed(let code):
             message(code == -15 ? "La sincronización fue cancelada." : "El proceso terminó con errores (código \(code)). Revise el registro.")
         }
