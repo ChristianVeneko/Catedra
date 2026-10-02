@@ -22,6 +22,7 @@ struct SidebarView: View {
 }
 
 private struct CourseDisclosure: View {
+    @Environment(AppContainer.self) private var container
     let course: Course
     @State private var expanded = false
 
@@ -31,9 +32,21 @@ private struct CourseDisclosure: View {
             Label("Actividades", systemImage: "checklist").tag(SidebarItem.activities(course.id))
             Label("Contenidos", systemImage: "folder").tag(SidebarItem.contents(course.id))
             Label("Foros", systemImage: "bubble.left.and.bubble.right").tag(SidebarItem.forums(course.id))
+            Label {
+                HStack {
+                    Text("Agente")
+                    Spacer()
+                    if container.agents.isRunning(scopeID: course.id) { AgentActivityDot() }
+                }
+            } icon: { Image(systemName: "sparkles") }
+            .tag(SidebarItem.agent(course.id))
         } label: {
             Label {
-                Text(course.name).lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(course.name).lineLimit(1)
+                    Spacer(minLength: 0)
+                    if container.agents.isRunning(inCourse: course.folderName) { AgentActivityDot() }
+                }
             } icon: {
                 Image(systemName: CoursePalette.symbol(for: course))
                     .foregroundStyle(.white)

@@ -10,6 +10,7 @@ final class AppContainer {
     let sync: SyncModel
     let reader: WorkspaceReading
     let importFiles: ImportFilesUseCase
+    let agents: AgentRunRegistry
 
     init() {
         // Under tests (or with CATEDRA_SKIP_KEYCHAIN=1) never touch the Keychain: a fresh ad-hoc signature would trigger
@@ -26,6 +27,8 @@ final class AppContainer {
         self.sync = SyncModel(
             useCase: SyncUseCase(syncer: PythonSyncAdapter(), credentials: credentials, reader: reader),
             workspace: workspace)
+        self.agents = AgentRunRegistry(runner: ClaudeCLIAgentRunner(), store: JSONAgentRunStore(),
+                                       notifier: UserNotificationAdapter(), terminal: TerminalLauncher(), settings: settings)
         self.importFiles = ImportFilesUseCase(makeImporter: { FileSystemImporter(workspaceRoot: $0) })
     }
 }

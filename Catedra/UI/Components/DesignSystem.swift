@@ -77,6 +77,7 @@ struct CountdownText: View {
 }
 
 struct ActivityCard: View {
+    @Environment(AppContainer.self) private var container
     let activity: Activity
     let course: Course?
     let state: ActivityState
@@ -101,7 +102,10 @@ struct ActivityCard: View {
                 }
                 Spacer(minLength: 8)
                 VStack(alignment: .trailing, spacing: 6) {
-                    StatusBadge(state: state)
+                    HStack(spacing: 6) {
+                        if container.agents.isRunning(scopeID: activity.id) { AgentActivityDot() }
+                        StatusBadge(state: state)
+                    }
                     if let due = activity.due, state != .submitted { CountdownText(due: due, font: .system(.caption, design: .rounded)) }
                 }
             }

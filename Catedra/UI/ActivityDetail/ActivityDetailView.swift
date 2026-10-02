@@ -17,6 +17,29 @@ struct ActivityDetailView: View {
     }
 
     var body: some View {
+        @Bindable var nav = container.navigation
+        Group {
+            if nav.activityTab == .agent {
+                let color = CoursePalette.color(for: container.workspace.course(for: model.activity))
+                AgentPanelView(scope: .activity(model.activity), color: color)
+                    .navigationTitle(model.activity.name)
+            } else {
+                detailContent
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Picker("Vista", selection: $nav.activityTab) {
+                    Text("Detalle").tag(ActivityDetailTab.detail)
+                    Label("Agente", systemImage: "sparkles").tag(ActivityDetailTab.agent)
+                }
+                .pickerStyle(.segmented).frame(width: 200)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var detailContent: some View {
         let activity = model.activity
         let course = container.workspace.course(for: activity)
         let color = CoursePalette.color(for: course)

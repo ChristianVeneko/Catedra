@@ -22,6 +22,24 @@ struct SettingsView: View {
                 if let status = settings.pythonStatus { Text(status).font(.caption).foregroundStyle(.secondary) }
                 Text("Debe tener instalado el módulo «requests».").font(.caption).foregroundStyle(.secondary)
             }
+            Section("Agentes (Claude Code)") {
+                HStack {
+                    TextField("Ejecutable", text: $settings.claudePath, prompt: Text("/Users/…/.local/bin/claude"))
+                    Button("Detectar") { Task { await settings.detectClaude() } }
+                }
+                if let status = settings.claudeStatus { Text(status).font(.caption).foregroundStyle(.secondary) }
+                Picker("Modelo predeterminado", selection: $settings.agentModel) {
+                    ForEach(AgentModel.allCases) { Text($0.label).tag($0) }
+                }
+                Picker("Modo de permisos", selection: $settings.agentPermissionMode) {
+                    ForEach(AgentPermissionMode.allCases) { Text($0.label).tag($0) }
+                }
+                Text(settings.agentPermissionMode.detail).font(.caption).foregroundStyle(.secondary)
+                if settings.agentPermissionMode == .bypassPermissions {
+                    Label("Con «Sin restricciones» el agente puede modificar o borrar cualquier archivo y ejecutar comandos sin pedir permiso.",
+                          systemImage: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(.orange)
+                }
+            }
             Section("Cuenta de SAIA") {
                 TextField("Usuario", text: $settings.username)
                 SecureField("Contraseña", text: $settings.password,
@@ -37,9 +55,10 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 540, height: 500)
+        .frame(width: 540, height: 700)
         .onChange(of: settings.workspacePath) { _, _ in Task { await container.workspace.reload() } }
         .task(id: settings.pythonPath) { await settings.validatePython() }
+        .task(id: settings.claudePath) { settings.validateClaude() }
     }
 
     private func chooseFolder() {
