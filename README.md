@@ -1,13 +1,13 @@
 # Catedra
 
 Native macOS (SwiftUI) cockpit over a local mirror of a student's Moodle (SAIA, Universidad Fermin Toro). It reads the
-workspace produced by `_sistema/sync_moodle.py`, shows what is due, renders statements, manages your own files per
+workspace produced by `_sistema/sync_moodle.py` (bundled in the app), shows what is due, renders statements, manages your own files per
 activity and can run the sync for you. UI copy is Spanish; code is English.
 
 ## Requirements
 - macOS 15+, Xcode 26+ (developed with Xcode 27 / Swift 6)
 - `xcodegen` (`brew install xcodegen`) only if you want to regenerate the project
-- A Python 3 with `requests` for syncing
+- A Python 3.9+ with `requests` for syncing (the setup wizard checks it)
 
 ## Build
 Open `Catedra.xcodeproj` in Xcode and run, or:
@@ -20,12 +20,55 @@ The app is not sandboxed (it reads `~/Desktop/UFT` and runs `python3`) and is si
 Settings (⌘,) hold the workspace path, Python interpreter and SAIA credentials.
 
 ## Architecture (hexagonal)
-- `Domain/` pure types: Activity, ActivityState, Course, CountdownFormatter, ActivityDiff, Agenda, SyncLogParser; `Domain/Agent/` AgentScope, AgentRun, AgentEvent, AgentProviderID, AgentOptions (permission levels, models), AgentEventParsing + ClaudeStreamParser / AntigravityStreamParser / OpenCodeEventParser, CancellationPolicy, ModelListParser, Recipe, SlashCommand, SlashCommandMatcher, SlashToken, AppCommand, SkillFrontmatter, PromptHistory, ScopeRelativePath
-- `Application/` use cases: LoadWorkspace, Sync, ImportFiles, RunAgent, RecipeCatalog
-- `Ports/` protocols: WorkspaceReading, MoodleSyncing, CredentialStoring, FileImporting, AgentRunning, AgentProvider, AgentRunStoring, AgentNotifying, TerminalOpening, SlashCommandCatalogStoring, SlashCommandScanning
-- `Adapters/` FileSystemWorkspace, PythonSyncAdapter, KeychainCredentialStore, FileSystemImporter, WorkspaceWatcher, CLIAgentRunner, ClaudeProvider / AntigravityProvider / OpenCodeProvider, BinaryLocator, AgentBinaryProbe, LoginShellEnvironment, JSONAgentRunStore, JSONSlashCommandCatalogStore, LocalSlashCommandScanner, GeneratedFilesScanner, TerminalLauncher, UserNotificationAdapter
+- `Domain/` pure types: `Domain/Onboarding/` (SemanticVersion, DependencyCheck + DependencyEvaluator/DependencyPlan, MoodleAuth, StarterInstructions), Activity, ActivityState, Course, CountdownFormatter, ActivityDiff, Agenda, SyncLogParser; `Domain/Agent/` AgentScope, AgentRun, AgentEvent, AgentProviderID, AgentOptions (permission levels, models), AgentEventParsing + ClaudeStreamParser / AntigravityStreamParser / OpenCodeEventParser, CancellationPolicy, ModelListParser, Recipe, SlashCommand, SlashCommandMatcher, SlashToken, AppCommand, SkillFrontmatter, PromptHistory, ScopeRelativePath
+- `Application/` use cases: LoadWorkspace, Sync (installs the bundled script first), ImportFiles, RunAgent, RecipeCatalog
+- `Ports/` protocols: WorkspaceReading, MoodleSyncing, CredentialStoring, FileImporting, AgentRunning, AgentProvider, AgentRunStoring, AgentNotifying, TerminalOpening, SlashCommandCatalogStoring, SlashCommandScanning, SyncScriptInstalling, MoodleAuthChecking, DependencyProbing, CommandStreaming
+- `Adapters/` FileSystemWorkspace, PythonSyncAdapter, KeychainCredentialStore, FileSystemImporter, WorkspaceWatcher, CLIAgentRunner, ClaudeProvider / AntigravityProvider / OpenCodeProvider, BinaryLocator, AgentBinaryProbe, LoginShellEnvironment, JSONAgentRunStore, JSONSlashCommandCatalogStore, LocalSlashCommandScanner, GeneratedFilesScanner, TerminalLauncher, UserNotificationAdapter, SyncScriptInstaller, MoodleAuthChecker, DependencyProbe, BoundedProcess, CommandStreamer, WorkspaceInspector (+ StarterFilesWriter)
 - `UI/` feature folders (Dashboard, Sidebar, ActivityDetail, Contents, Sync, Agent, Settings, Components)
-- `App/` composition root (`AppContainer`) and `@Observable` models
+- `App/` composition root (`AppContainer`) and `@Observable` models (including `OnboardingModel`)
+
+## Setup wizard
+A multi-step window (`OnboardingView`, scene id `onboarding`) opens on first launch (`onboardingCompleted` in
+UserDefaults) and can be re-run from Settings ("Volver a ejecutar el asistente") or the app menu ("Asistente de
+configuración…"). Launching with `-CatedraForceOnboarding YES` forces it once.
+1. **Bienvenida**.
+2. **Carpeta de datos**: pick an existing workspace or create a folder (`NSOpenPanel` with "Nueva carpeta"); it must be
+   writable. A folder containing `_sistema/data/activities.json` is reported as "Se encontró un espacio existente con N
+   actividades". Suggested folder for a new workspace: `~/Documents/Cátedra` (the current setting is kept when the user
+   chose it or it already holds a synced workspace). For a NEW workspace without `CLAUDE.md`/`AGENTS.md`, a checkbox
+   (default on) creates a starter `AGENTS.md` (layout and rules, English) and a `CLAUDE.md` containing `@AGENTS.md`.
+   Existing files are never overwritten.
+3. **Credenciales del SAIA**: stored in the Keychain; "Probar conexión" POSTs `username`, `password` and
+   `service=moodle_mobile_app` to `https://saia.uft.edu.ve/login/token.php`. Only the verdict is kept: the token is
+   discarded and neither value is logged. Can be skipped.
+4. **Agente**: Claude Code, Antigravity or OpenCode with their marks, install state and the OpenCode ToS warning.
+5. **Dependencias**: live checklist (Python >= 3.9, `requests`, the selected agent CLI = required; the other agents, Git
+   and Node = optional) with versions, copyable install commands and "Volver a comprobar". "Instalar" (only on an explicit
+   click) runs `python -m pip install --user requests` and streams its output. Commands run through the login-shell
+   environment with timeouts (`DependencyProbe`); `/usr/bin` shims are never executed without Command Line Tools.
+6. **Listo**: summary and "Sincronizar ahora". Finishing writes the settings (workspace, provider, interpreter), installs
+   the sync script and sets the flag. If a required dependency is missing the wizard can still finish; a banner stays in
+   the main window until it is fixed.
+
+## Sync script bundling
+`Catedra/Resources/Sync/sync_moodle.py` is the canonical script and ships in the app's Resources (tests under
+`Resources/Sync/tests/` are excluded from the bundle). `SyncScriptInstaller` makes `<workspace>/_sistema/sync_moodle.py`
+equal to the bundled copy (SHA-256 comparison), creates `_sistema/data/`, and, if a different script is already there,
+copies it once to `sync_moodle.py.bak-<yyyyMMdd-HHmmss>` before overwriting. It runs when the wizard finishes and before
+every sync; the script is then run as `python sync_moodle.py --root <workspace>` (`--root` or `CATEDRA_WORKSPACE`
+override the default root, the parent of the script's folder).
+Python tests (stdlib): `cd Catedra/Resources/Sync && python3 -m unittest discover -s tests -v` (needs `requests`).
+
+## Images
+The script downloads the `<img>` images of every HTML it converts (assignment and quiz statements, pages and books,
+labels, forum posts) into an `_imagenes/` folder next to the generated Markdown and rewrites the references to relative
+paths (`![alt](_imagenes/blobid0.jpg)`). SAIA (`/pluginfile.php`) images use the token; external http(s) images are
+fetched anonymously with a timeout and keep their remote URL on failure. Existing files are not downloaded again;
+`--no-files` downloads nothing (images already on disk are still referenced). `_imagenes/` is generated output and is
+overwritten by sync. The script also repairs mojibake in converted text (`vÃÂ­deo` becomes `vídeo`).
+In the app, `MarkdownParser` splits inline images into blocks (several images on one line become several blocks) and
+`MarkdownImageView` renders local files with `NSImage` (async, rounded, click for Quick Look) and remote ones with
+`AsyncImage`; missing images show a placeholder with the alt text and a link.
 
 ## Credentials
 The SAIA username and password are stored only in the macOS Keychain (service `com.cmendoza.catedra.saia`). On sync
