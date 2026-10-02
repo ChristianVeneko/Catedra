@@ -68,3 +68,24 @@ enum SyncScriptInstallError: Error, Sendable, Equatable, LocalizedError {
 protocol SyncScriptInstalling: Sendable {
     func install(workspace: URL) throws -> SyncScriptInstallResult
 }
+
+/// Checks SAIA credentials against the mobile-app token endpoint. Implementations never log or persist the token.
+protocol MoodleAuthChecking: Sendable {
+    func check(username: String, password: String) async -> MoodleAuthResult
+}
+
+/// Inspects what the machine has installed for the setup checklist.
+protocol DependencyProbing: Sendable {
+    func observe(_ id: DependencyID, context: DependencyProbeContext) async -> DependencyObservation
+}
+
+struct DependencyProbeContext: Sendable {
+    /// Interpreter chosen in Settings (or by an earlier probe); empty means "search".
+    var pythonPath: String = ""
+    var agentPaths: [AgentProviderID: String] = [:]
+}
+
+/// Runs a command the user explicitly asked for and streams its output.
+protocol CommandStreaming: Sendable {
+    func run(_ executable: String, arguments: [String]) -> AsyncStream<SyncOutput>
+}
