@@ -48,7 +48,9 @@ struct AgentPanelView: View {
             composer.provider = activeProvider
             composer.history = PromptHistory(entries: registry.promptHistory(in: scope.id))
             composer.setAvailable(availableCommands)
+            consumePendingRecipe()
         }
+        .onChange(of: container.navigation.pendingRecipe) { _, _ in consumePendingRecipe() }
         .task(id: PrepareKey(scopeID: scope.id, provider: activeProvider)) {
             await container.commands.prepare(folder: scopeFolder, provider: activeProvider)
         }
@@ -198,6 +200,18 @@ struct AgentPanelView: View {
     private func show(_ message: String) {
         notice = message
         Task { try? await Task.sleep(for: .seconds(5)); if notice == message { notice = nil } }
+    }
+
+    /// A recipe picked in the command palette: show its prompt for review, never run it.
+    private func consumePendingRecipe() {
+        let nav = container.navigation
+        guard let pending = nav.pendingRecipe, pending.scopeID == scope.id else { return }
+        nav.pendingRecipe = nil
+        guard let recipe = RecipeCatalog.recipe(id: pending.recipeID), recipe.applies(to: scope) else { return }
+        guard !busy else { return show("Espere a que termine el agente antes de abrir una receta.") }
+        registry.selection[scope.id] = nil
+        recipeText = RecipeCatalog.render(recipe, scope: scope, activities: courseActivities, formatDate: Formatters.due)
+        pendingRecipe = recipe
     }
 
     private func runRecipe() {

@@ -5,13 +5,22 @@ struct CatedraApp: App {
     @State private var container = AppContainer()
 
     var body: some Scene {
-        WindowGroup("Cátedra") {
+        Window("Cátedra", id: AppContainer.mainWindowID) {
             ContentView()
                 .environment(container)
         }
         .defaultSize(width: 1280, height: 800)
         .commands {
             OnboardingCommands()
+            CommandMenu("Ir") {
+                Button("Buscar…") {
+                    container.showMainWindow()
+                    container.palette.present()
+                }
+                .keyboardShortcut("k", modifiers: .command)
+                Button("Hoy") { container.navigation.sidebar = .today }
+                    .keyboardShortcut("1", modifiers: .command)
+            }
             CommandGroup(replacing: .newItem) {
                 Button("Sincronizar") { container.sync.start(includeFiles: true) }
                     .keyboardShortcut("r", modifiers: .command)
@@ -25,6 +34,14 @@ struct CatedraApp: App {
         }
         .windowResizability(.contentSize)
         .restorationBehavior(.disabled)
+
+        MenuBarExtra(isInserted: Binding(get: { container.settings.menuBarVisible },
+                                         set: { container.settings.menuBarVisible = $0 })) {
+            MenuBarPopover().environment(container)
+        } label: {
+            MenuBarLabelView().environment(container)
+        }
+        .menuBarExtraStyle(.window)
 
         Settings {
             SettingsView().environment(container)

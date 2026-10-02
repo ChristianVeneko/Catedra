@@ -16,6 +16,10 @@ struct ContentView: View {
         }
         .searchable(text: $workspace.searchText, placement: .toolbar, prompt: "Buscar actividades")
         .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button { container.palette.present() } label: { Label("Buscar", systemImage: "magnifyingglass") }
+                    .help("Buscar y ejecutar (⌘K)")
+            }
             ToolbarItem(placement: .primaryAction) { RunningAgentsBadge() }
             ToolbarItem(placement: .primaryAction) { courseAgentButton }
             ToolbarItem(placement: .primaryAction) {
@@ -30,11 +34,22 @@ struct ContentView: View {
             }
         }
         .sheet(isPresented: $sync.isPresented) { SyncSheet() }
+        .overlay {
+            if container.palette.isPresented {
+                CommandPaletteView().transition(.opacity.combined(with: .scale(scale: 0.98)))
+            }
+        }
+        .animation(.snappy(duration: 0.18), value: container.palette.isPresented)
+        .onAppear {
+            let open = openWindow
+            container.openWindowByID = { open(id: $0) }
+        }
         .safeAreaInset(edge: .top, spacing: 0) { setupBanner }
         .task {
             if container.onboarding.consumeAutoPresent() { openWindow(id: "onboarding") }
             await container.onboarding.refreshWarningIfNeeded()
             await container.workspace.reload()
+            await container.reminders.refreshPermission()
             await container.agents.load()
             await container.commands.prepare(folder: container.settings.workspaceURL, provider: container.settings.agentProvider)
             await container.settings.refreshStatus(container.settings.agentProvider)

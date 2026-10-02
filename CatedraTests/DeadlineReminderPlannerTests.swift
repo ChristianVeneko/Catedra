@@ -114,7 +114,7 @@ struct DeadlineReminderPlannerTests {
     // MARK: preferences
 
     @Test func preferencesProduceOffsets() {
-        var prefs = ReminderPreferences()
+        var prefs = ReminderPreferences(); prefs.enabled = true
         #expect(prefs.offsetsHours == [48, 24, 3])
         prefs.at24h = false
         prefs.customEnabled = true

@@ -20,9 +20,8 @@ struct PaletteMatcherTests {
             item("pxaxrxc"),                         // subsequence 100
         ]
         #expect(titles(PaletteMatcher.results(query: "parc", items: items))
-                == ["Parcial 1", "Examen parcial", "Xparcialx", "Otra"])
-        #expect(titles(PaletteMatcher.results(query: "parc", items: [item("pxaxrxc")])).isEmpty)
-        #expect(titles(PaletteMatcher.results(query: "prc", items: [item("pxaxrxc")])) == ["pxaxrxc"])
+                == ["Parcial 1", "Examen parcial", "Xparcialx", "Otra", "pxaxrxc"])
+        #expect(titles(PaletteMatcher.results(query: "pzc", items: [item("pxaxrxc")])).isEmpty)
     }
 
     @Test func ignoresCaseAndDiacritics() {

@@ -27,12 +27,43 @@ enum SidebarItem: Hashable {
 
 enum ActivityDetailTab: Hashable { case detail, agent }
 
+/// A recipe chosen elsewhere (command palette) that the agent panel of `scopeID` should prefill, without running it.
+struct PendingRecipe: Equatable {
+    let recipeID: String
+    let scopeID: String
+}
+
 @Observable @MainActor
 final class NavigationModel {
     var activityTab: ActivityDetailTab = .detail
     var sidebar: SidebarItem? = .today
     var selectedActivityID: Activity.ID?
     var selectedNodeURL: URL?
+    var pendingRecipe: PendingRecipe?
+
+    func show(activity: Activity) {
+        sidebar = .activities(activity.courseFolderName)
+        selectedActivityID = activity.id
+        activityTab = .detail
+    }
+
+    func show(content url: URL, courseFolder: String) {
+        sidebar = .contents(courseFolder)
+        selectedNodeURL = url
+    }
+
+    /// Opens the agent panel of an activity or course so it can prefill `recipe`.
+    func show(recipe: Recipe, scope: AgentScope) {
+        pendingRecipe = PendingRecipe(recipeID: recipe.id, scopeID: scope.id)
+        switch scope {
+        case .course(let course):
+            sidebar = .agent(course.folderName)
+        case .activity(let activity):
+            sidebar = .activities(activity.courseFolderName)
+            selectedActivityID = activity.id
+            activityTab = .agent
+        }
+    }
 
     /// Jumps to the place where a run lives (activity agent tab or course agent view).
     func open(run: AgentRun, registry: AgentRunRegistry) {

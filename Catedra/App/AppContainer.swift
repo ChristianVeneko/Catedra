@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import UserNotifications
 
 /// Composition root: wires adapters into use cases and view models.
 @Observable @MainActor
@@ -13,6 +14,13 @@ final class AppContainer {
     let agents: AgentRunRegistry
     let commands: SlashCommandCatalog
     let onboarding: OnboardingModel
+    let clock = MinuteClock()
+    let reminders: ReminderModel
+    let contentIndex: ContentIndexModel
+    let palette = PaletteModel()
+    let notificationRouter = NotificationRouter()
+    /// Opens a window scene by id; registered by views that have access to `openWindow`.
+    var openWindowByID: (@MainActor (String) -> Void)?
 
     init() {
         // Under tests (or with CATEDRA_SKIP_KEYCHAIN=1) never touch the Keychain: a fresh ad-hoc signature would trigger
@@ -51,6 +59,20 @@ final class AppContainer {
         onboarding.startSync = { syncModel.start(includeFiles: true) }
         self.onboarding = onboarding
         self.importFiles = ImportFilesUseCase(makeImporter: { FileSystemImporter(workspaceRoot: $0) })
+        let reminders = ReminderModel(scheduler: UserNotificationScheduler(), settings: settings, workspace: workspace)
+        self.reminders = reminders
+        let contentIndex = ContentIndexModel(workspace: workspace)
+        self.contentIndex = contentIndex
+        workspace.onReloaded = { [weak reminders, weak contentIndex] in
+            reminders?.scheduleSoon()
+            contentIndex?.workspaceChanged()
+        }
+        settings.onRemindersChanged = { [weak reminders] in reminders?.scheduleSoon() }
+        wirePalette()
+        if env["XCTestConfigurationFilePath"] == nil {
+            notificationRouter.onOpenActivity = { [weak self] id in self?.reveal(activityID: id) }
+            UNUserNotificationCenter.current().delegate = notificationRouter
+        }
     }
 }
 

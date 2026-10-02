@@ -17,6 +17,16 @@ final class SettingsModel {
     var defaultPermissions: [AgentProviderID: AgentPermissionLevel] {
         didSet { persist(defaultPermissions.mapValues(\.rawValue), prefix: Keys.permission) }
     }
+    /// Menu bar extra visibility and whether it shows the next deadline countdown.
+    var menuBarVisible: Bool { didSet { defaults.set(menuBarVisible, forKey: Keys.menuBar) } }
+    var menuBarShowsCountdown: Bool { didSet { defaults.set(menuBarShowsCountdown, forKey: Keys.menuBarCountdown) } }
+    var reminders: ReminderPreferences {
+        didSet {
+            persistReminders()
+            if reminders != oldValue { onRemindersChanged?() }
+        }
+    }
+    var onRemindersChanged: (@MainActor () -> Void)?
     private(set) var statuses: [AgentProviderID: BinaryStatus] = [:]
     /// Models reported by `agy models` / `opencode models` (cached in UserDefaults).
     private(set) var modelLists: [AgentProviderID: [AgentModelOption]]
@@ -31,6 +41,9 @@ final class SettingsModel {
     private let store: CredentialStoring
     private enum Keys {
         static let workspace = "workspacePath", python = "pythonPath"
+        static let menuBar = "menuBarVisible", menuBarCountdown = "menuBarShowsCountdown"
+        static let remindersEnabled = "reminders.enabled", reminder48 = "reminders.48h", reminder24 = "reminders.24h",
+                   reminder3 = "reminders.3h", reminderCustom = "reminders.custom", reminderCustomHours = "reminders.customHours"
         static let provider = "agentProvider", path = "agentPath.", model = "agentModel.", permission = "agentPermission.", models = "agentModelList."
         // Keys written before multi-provider support (Claude only).
         static let legacyClaudePath = "claudePath", legacyModel = "agentModel", legacyMode = "agentPermissionMode"
@@ -41,6 +54,16 @@ final class SettingsModel {
         self.defaults = defaults
         self.workspacePath = defaults.string(forKey: Keys.workspace) ?? Self.defaultWorkspacePath
         self.pythonPath = defaults.string(forKey: Keys.python) ?? ""
+        self.menuBarVisible = defaults.object(forKey: Keys.menuBar) as? Bool ?? true
+        self.menuBarShowsCountdown = defaults.object(forKey: Keys.menuBarCountdown) as? Bool ?? true
+        var reminders = ReminderPreferences()
+        reminders.enabled = defaults.object(forKey: Keys.remindersEnabled) as? Bool ?? false
+        reminders.at48h = defaults.object(forKey: Keys.reminder48) as? Bool ?? true
+        reminders.at24h = defaults.object(forKey: Keys.reminder24) as? Bool ?? true
+        reminders.at3h = defaults.object(forKey: Keys.reminder3) as? Bool ?? true
+        reminders.customEnabled = defaults.object(forKey: Keys.reminderCustom) as? Bool ?? false
+        reminders.customHours = max(1, defaults.object(forKey: Keys.reminderCustomHours) as? Int ?? 12)
+        self.reminders = reminders
         self.agentProvider = defaults.string(forKey: Keys.provider).flatMap(AgentProviderID.init(rawValue:)) ?? .claude
         var paths: [AgentProviderID: String] = [:], models: [AgentProviderID: String] = [:]
         var permissions: [AgentProviderID: AgentPermissionLevel] = [:]
@@ -64,6 +87,15 @@ final class SettingsModel {
         let creds = store.load()
         self.username = creds?.username ?? ""
         self.hasStoredCredentials = creds != nil
+    }
+
+    private func persistReminders() {
+        defaults.set(reminders.enabled, forKey: Keys.remindersEnabled)
+        defaults.set(reminders.at48h, forKey: Keys.reminder48)
+        defaults.set(reminders.at24h, forKey: Keys.reminder24)
+        defaults.set(reminders.at3h, forKey: Keys.reminder3)
+        defaults.set(reminders.customEnabled, forKey: Keys.reminderCustom)
+        defaults.set(reminders.customHours, forKey: Keys.reminderCustomHours)
     }
 
     var workspaceURL: URL { URL(fileURLWithPath: workspacePath, isDirectory: true) }

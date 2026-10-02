@@ -7,6 +7,10 @@ final class WorkspaceModel {
     private(set) var loadError: String?
     private(set) var isLoading = false
     var searchText = ""
+    /// Incremented after every successful load; caches key on it.
+    private(set) var revision = 0
+    /// Called after each load (sync, file watcher, settings change).
+    var onReloaded: (@MainActor () -> Void)?
 
     let settings: SettingsModel
     let reader: WorkspaceReading
@@ -28,6 +32,8 @@ final class WorkspaceModel {
         do {
             snapshot = try await loadUseCase.execute(root: root)
             loadError = nil
+            revision += 1
+            onReloaded?()
         } catch {
             loadError = "No se pudo leer el espacio de trabajo: \(error.localizedDescription)"
         }

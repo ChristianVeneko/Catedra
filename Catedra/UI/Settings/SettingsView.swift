@@ -15,6 +15,14 @@ struct SettingsView: View {
                 }
                 Text("Carpeta que contiene las materias y la carpeta «_sistema».").font(.caption).foregroundStyle(.secondary)
             }
+            Section("Barra de menús") {
+                Toggle("Mostrar en la barra de menús", isOn: $settings.menuBarVisible)
+                Toggle("Mostrar la cuenta regresiva", isOn: $settings.menuBarShowsCountdown)
+                    .disabled(!settings.menuBarVisible)
+                Text("Ícono con el tiempo que falta para la próxima entrega: naranja con menos de 24 h y rojo con menos de 3 h.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            RemindersSection(settings: settings)
             Section("Asistente de configuración") {
                 Button("Volver a ejecutar el asistente") { openWindow(id: "onboarding") }
                 Text("Guía paso a paso: carpeta de datos, credenciales del SAIA, agente y dependencias.")
@@ -56,7 +64,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 560, height: 820)
+        .frame(width: 560, height: 900)
         .onChange(of: settings.workspacePath) { _, _ in Task { await container.workspace.reload() } }
         .task(id: settings.pythonPath) { await settings.validatePython() }
         .task(id: settings.binaryPaths) {
@@ -187,6 +195,56 @@ private struct ProviderSettingsSection: View {
                 .disabled(settings.loadingModels.contains(provider))
                 Text("\(max(0, options.count - 1)) modelos disponibles").font(.caption).foregroundStyle(.secondary)
             }
+        }
+    }
+}
+
+/// Deadline notification preferences, permission state and a test button.
+private struct RemindersSection: View {
+    @Environment(AppContainer.self) private var container
+    @Bindable var settings: SettingsModel
+
+    var body: some View {
+        Section("Recordatorios de entregas") {
+            Toggle("Avisarme antes de cada entrega", isOn: $settings.reminders.enabled)
+            if settings.reminders.enabled {
+                Toggle("48 horas antes", isOn: $settings.reminders.at48h)
+                Toggle("24 horas antes", isOn: $settings.reminders.at24h)
+                Toggle("3 horas antes", isOn: $settings.reminders.at3h)
+                Toggle("Aviso personalizado", isOn: $settings.reminders.customEnabled)
+                if settings.reminders.customEnabled {
+                    Stepper("\(settings.reminders.customHours) h antes", value: $settings.reminders.customHours, in: 1...336)
+                }
+                permissionStatus
+                HStack {
+                    Button("Enviar notificación de prueba") { Task { await container.reminders.sendTest() } }
+                    Spacer()
+                    Text("\(container.reminders.scheduledCount) programados").font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            Text("Se programan como máximo \(DeadlineReminderPlanner.maxPending) avisos, los más cercanos primero. Las actividades entregadas no generan avisos.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+        .task { await container.reminders.refreshPermission() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            Task { await container.reminders.refreshPermission() }
+        }
+    }
+
+    @ViewBuilder
+    private var permissionStatus: some View {
+        switch container.reminders.permission {
+        case .denied:
+            Label("Las notificaciones de Cátedra están desactivadas en el sistema.", systemImage: "bell.slash.fill")
+                .font(.caption).foregroundStyle(.orange)
+            Button("Abrir Ajustes del Sistema") {
+                if let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension") { NSWorkspace.shared.open(url) }
+            }
+        case .notDetermined:
+            Label("El sistema pedirá permiso al programar el primer aviso.", systemImage: "bell.badge")
+                .font(.caption).foregroundStyle(.secondary)
+        case .authorized:
+            Label("Notificaciones permitidas.", systemImage: "bell.fill").font(.caption).foregroundStyle(.green)
         }
     }
 }
