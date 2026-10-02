@@ -12,6 +12,8 @@ struct AgentResult: Codable, Hashable, Sendable {
     let sessionId: String?
     let costUSD: Double?
     let durationMs: Int?
+    var inputTokens: Int? = nil
+    var outputTokens: Int? = nil
 }
 
 /// One normalized event of an agent conversation, produced by `AgentStreamParser` or by the app itself.

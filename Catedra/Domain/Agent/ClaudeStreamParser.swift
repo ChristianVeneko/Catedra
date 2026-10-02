@@ -2,28 +2,17 @@ import Foundation
 
 /// Pure, tolerant translator from Claude Code `stream-json` lines to `AgentEvent`s.
 /// Unknown event types and fields are ignored and malformed lines are skipped; it never throws.
-struct AgentStreamParser: Sendable {
+struct ClaudeStreamParser: AgentEventParsing {
     static let previewLimit = 600
 
-    private var buffer = Data()
+    private var lines = JSONLineBuffer()
 
-    /// Feeds raw output bytes; returns events for every complete line. Partial lines (and split UTF-8) are retained.
     mutating func feed(_ data: Data) -> [AgentEvent] {
-        buffer.append(data)
-        var events: [AgentEvent] = []
-        while let newline = buffer.firstIndex(of: 0x0A) {
-            let lineData = buffer[buffer.startIndex..<newline]
-            buffer.removeSubrange(buffer.startIndex...newline)
-            events += Self.parse(line: String(decoding: lineData, as: UTF8.self))
-        }
-        return events
+        lines.feed(data).flatMap { Self.parse(line: $0) }
     }
 
-    /// Flushes a trailing line that had no newline.
     mutating func finish() -> [AgentEvent] {
-        defer { buffer = Data() }
-        guard !buffer.isEmpty else { return [] }
-        return Self.parse(line: String(decoding: buffer, as: UTF8.self))
+        lines.flush().map { Self.parse(line: $0) } ?? []
     }
 
     static func parse(line: String) -> [AgentEvent] {
@@ -139,7 +128,7 @@ struct AgentStreamParser: Sendable {
 
 /// One-line, human-oriented description of a tool call's input.
 enum ToolSummary {
-    private static let preferredKeys = ["file_path", "path", "command", "pattern", "skill", "url", "query", "description", "prompt"]
+    private static let preferredKeys = ["file_path", "path", "AbsolutePath", "TargetFile", "filePath", "CommandLine", "DirectoryPath", "Query", "Url", "command", "pattern", "skill", "url", "query", "description", "prompt"]
 
     static func summarize(name: String, input: [String: Any]) -> String {
         for key in preferredKeys {

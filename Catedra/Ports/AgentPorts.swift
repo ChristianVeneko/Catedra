@@ -25,7 +25,8 @@ protocol AgentNotifying: Sendable {
 }
 
 protocol TerminalOpening: Sendable {
-    func openClaude(in folder: URL, executablePath: String, sessionId: String?) throws
+    /// Opens Terminal.app in `folder` running `command` (executable path first).
+    func open(in folder: URL, command: [String]) throws
 }
 
 protocol SlashCommandCatalogStoring: Sendable {
@@ -37,4 +38,28 @@ protocol SlashCommandCatalogStoring: Sendable {
 protocol SlashCommandScanning: Sendable {
     /// Skills and custom commands found on disk for a working folder (user level plus its ancestors).
     func scan(folder: URL) -> [SlashCommand]
+}
+
+/// Everything provider-specific about one agent CLI: how to call it, how to read its output, how to resume it.
+protocol AgentProvider: Sendable {
+    var id: AgentProviderID { get }
+    /// True when a stored session id can continue the conversation.
+    var supportsResume: Bool { get }
+    /// Arguments for one headless turn (after the executable).
+    func buildArguments(prompt: String, options: AgentOptions, resume: String?, cwd: URL, knownCommands: Set<String>) -> [String]
+    func makeParser() -> any AgentEventParsing
+    /// Extra environment variables for the child process.
+    var environmentOverrides: [String: String] { get }
+}
+
+extension AgentProvider {
+    var slashCatalogSource: AgentProviderID.SlashCatalogSource { id.slashCatalogSource }
+    var environmentOverrides: [String: String] { [:] }
+
+    /// Arguments of the interactive CLI that continue `sessionId` (empty when there is none).
+    func terminalResumeCommand(sessionId: String?) -> [String] { id.terminalResumeArguments(sessionId: sessionId) }
+
+    func locate(override: String?, locator: BinaryLocator? = nil) -> String? {
+        (locator ?? BinaryLocator(provider: id)).locate(override: override)
+    }
 }

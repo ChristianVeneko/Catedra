@@ -45,3 +45,22 @@ struct SlashCommandCatalogTests {
         #expect(JSONSlashCommandCatalogStore(file: file).load().isEmpty)
     }
 }
+
+struct ProviderSlashCatalogTests {
+    func cmd(_ name: String, kind: SlashCommand.Kind = .skill) -> SlashCommand {
+        SlashCommand(name: name, description: "", argumentHint: nil, aliases: [], kind: kind)
+    }
+
+    @Test func nonClaudeProvidersUseASingleProviderSection() {
+        let matches = [cmd("deploy")].map { SlashCommandMatch(command: $0, score: 0, highlight: []) }
+        #expect(SlashCommandCatalogPolicy.sections(from: matches, provider: .opencode).map(\.title) == ["Skills / Comandos de OpenCode"])
+        #expect(SlashCommandCatalogPolicy.sections(from: matches, provider: .antigravity).map(\.title) == ["Skills / Comandos de Antigravity"])
+        #expect(SlashCommandCatalogPolicy.sections(from: matches).map(\.title) == ["Skills"])
+    }
+
+    @Test func claudeTerminalOnlyFilterDoesNotApplyToOtherProviders() {
+        let local = [cmd("help"), cmd("deploy")]
+        #expect(SlashCommandCatalogPolicy.merge(app: [], cli: [], local: local).map(\.name) == ["deploy"])
+        #expect(SlashCommandCatalogPolicy.merge(app: [], cli: [], local: local, provider: .opencode).map(\.name) == ["help", "deploy"])
+    }
+}

@@ -108,4 +108,30 @@ struct AgentRunTests {
         #expect(items.count == 2)
         if case .assistant(_, let text) = items[1] { #expect(text == "solo resultado") } else { Issue.record("expected assistant") }
     }
+
+    @Test func oldStoredRunsWithoutProviderDecodeAsClaude() throws {
+        let json = #"""
+        {"id":"6F9619FF-8B86-D011-B42D-00C04FC964FF","scope":{"kind":"course","folder":"01 - X","title":"X"},"prompt":"p",
+         "status":"succeeded","startedAt":"2026-01-01T00:00:00Z","turnStartedAt":"2026-01-01T00:00:00Z","costUSD":0.5,
+         "transcript":[{"userPrompt":{"_0":"p"}}]}
+        """#
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let run = try decoder.decode(AgentRun.self, from: Data(json.utf8))
+        #expect(run.provider == .claude)
+        #expect(run.inputTokens == 0 && run.outputTokens == 0)
+        #expect(run.costUSD == 0.5)
+    }
+
+    @Test func providerAndTokensRoundTrip() throws {
+        var run = AgentRun(provider: .antigravity, scope: AgentScopeRef(kind: .course, folder: "01 - X", title: "X"), prompt: "p",
+                           recipeID: nil, recipeTitle: nil, at: t0)
+        run.apply(.result(AgentResult(isError: false, subtype: "SUCCESS", text: "ok", sessionId: "c", costUSD: nil, durationMs: 1,
+                                      inputTokens: 10, outputTokens: 4)), at: t0)
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        let back = try decoder.decode(AgentRun.self, from: encoder.encode(run))
+        #expect(back == run)
+        #expect(back.provider == .antigravity && back.inputTokens == 10 && back.outputTokens == 4)
+    }
 }

@@ -5,6 +5,8 @@ struct AgentRun: Codable, Identifiable, Equatable, Sendable {
     enum Status: String, Codable, Sendable { case running, succeeded, failed, cancelled }
 
     let id: UUID
+    /// CLI that owns this conversation; continuing it always uses the same provider.
+    var provider: AgentProviderID
     let scope: AgentScopeRef
     var prompt: String
     var recipeID: String?
@@ -15,11 +17,14 @@ struct AgentRun: Codable, Identifiable, Equatable, Sendable {
     var turnStartedAt: Date
     var finishedAt: Date?
     var costUSD: Double
+    var inputTokens: Int
+    var outputTokens: Int
     var model: String?
     var transcript: [AgentEvent]
 
-    init(id: UUID = UUID(), scope: AgentScopeRef, prompt: String, recipeID: String?, recipeTitle: String?, at date: Date) {
+    init(id: UUID = UUID(), provider: AgentProviderID = .claude, scope: AgentScopeRef, prompt: String, recipeID: String?, recipeTitle: String?, at date: Date) {
         self.id = id
+        self.provider = provider
         self.scope = scope
         self.prompt = prompt
         self.recipeID = recipeID
@@ -30,8 +35,31 @@ struct AgentRun: Codable, Identifiable, Equatable, Sendable {
         self.turnStartedAt = date
         self.finishedAt = nil
         self.costUSD = 0
+        self.inputTokens = 0
+        self.outputTokens = 0
         self.model = nil
         self.transcript = [.userPrompt(prompt)]
+    }
+
+    /// Runs stored before multi-provider support have no `provider`/token keys: they decode as Claude with zero tokens.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        provider = try c.decodeIfPresent(AgentProviderID.self, forKey: .provider) ?? .claude
+        scope = try c.decode(AgentScopeRef.self, forKey: .scope)
+        prompt = try c.decode(String.self, forKey: .prompt)
+        recipeID = try c.decodeIfPresent(String.self, forKey: .recipeID)
+        recipeTitle = try c.decodeIfPresent(String.self, forKey: .recipeTitle)
+        status = try c.decode(Status.self, forKey: .status)
+        sessionId = try c.decodeIfPresent(String.self, forKey: .sessionId)
+        startedAt = try c.decode(Date.self, forKey: .startedAt)
+        turnStartedAt = try c.decode(Date.self, forKey: .turnStartedAt)
+        finishedAt = try c.decodeIfPresent(Date.self, forKey: .finishedAt)
+        costUSD = try c.decode(Double.self, forKey: .costUSD)
+        inputTokens = try c.decodeIfPresent(Int.self, forKey: .inputTokens) ?? 0
+        outputTokens = try c.decodeIfPresent(Int.self, forKey: .outputTokens) ?? 0
+        model = try c.decodeIfPresent(String.self, forKey: .model)
+        transcript = try c.decode([AgentEvent].self, forKey: .transcript)
     }
 
     var title: String {
@@ -66,6 +94,8 @@ struct AgentRun: Codable, Identifiable, Equatable, Sendable {
         case .result(let result):
             if let id = result.sessionId { sessionId = id }
             costUSD += result.costUSD ?? 0
+            inputTokens += result.inputTokens ?? 0
+            outputTokens += result.outputTokens ?? 0
             status = result.isError ? .failed : .succeeded
             finishedAt = date
             transcript.append(event)

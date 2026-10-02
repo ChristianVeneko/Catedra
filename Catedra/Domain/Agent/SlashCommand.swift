@@ -1,6 +1,6 @@
 import Foundation
 
-/// A command offered by the composer popup: a Claude Code skill or builtin, or a command handled by the app itself.
+/// A command offered by the composer popup: a provider skill, custom command or builtin, or a command handled by the app itself.
 struct SlashCommand: Codable, Hashable, Identifiable, Sendable {
     enum Kind: String, Codable, Sendable { case skill, builtin, app }
 
@@ -45,23 +45,24 @@ enum SlashCommandCatalogPolicy {
         "permissions", "add-dir", "status", "usage", "export", "rewind", "security-review", "pr-comments",
     ]
 
-    static func title(for kind: SlashCommand.Kind) -> String {
+    static func title(for kind: SlashCommand.Kind, provider: AgentProviderID = .claude) -> String {
         switch kind {
         case .app: "Cátedra"
-        case .skill: "Skills"
-        case .builtin: "Comandos de Claude Code"
+        case .skill: provider == .claude ? "Skills" : provider.slashSectionTitle
+        case .builtin: provider.slashSectionTitle
         }
     }
 
     /// App commands win over same-named (or aliased) CLI commands; terminal-only commands are dropped;
     /// local scan results fill in names the CLI catalog does not know.
-    static func merge(app: [SlashCommand], cli: [SlashCommand], local: [SlashCommand]) -> [SlashCommand] {
+    static func merge(app: [SlashCommand], cli: [SlashCommand], local: [SlashCommand],
+                      provider: AgentProviderID = .claude) -> [SlashCommand] {
         let overridden = Set(app.flatMap { [$0.name] + $0.aliases }.map { $0.lowercased() })
         var seen = overridden
         var result = app
         for command in cli + local {
             let key = command.name.lowercased()
-            guard !seen.contains(key), !terminalOnly.contains(key) else { continue }
+            guard !seen.contains(key), provider != .claude || !terminalOnly.contains(key) else { continue }
             seen.insert(key)
             result.append(command)
         }
@@ -69,10 +70,10 @@ enum SlashCommandCatalogPolicy {
     }
 
     /// Groups ranked matches into popup sections (Cátedra, Skills, Claude Code), preserving rank inside each.
-    static func sections(from matches: [SlashCommandMatch]) -> [SlashCommandSection] {
+    static func sections(from matches: [SlashCommandMatch], provider: AgentProviderID = .claude) -> [SlashCommandSection] {
         [SlashCommand.Kind.app, .skill, .builtin].compactMap { kind in
             let group = matches.filter { $0.command.kind == kind }
-            return group.isEmpty ? nil : SlashCommandSection(kind: kind, title: title(for: kind), matches: group)
+            return group.isEmpty ? nil : SlashCommandSection(kind: kind, title: title(for: kind, provider: provider), matches: group)
         }
     }
 }
