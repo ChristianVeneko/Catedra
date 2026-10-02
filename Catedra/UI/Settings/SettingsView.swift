@@ -3,6 +3,7 @@ import AppKit
 
 struct SettingsView: View {
     @Environment(AppContainer.self) private var container
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         @Bindable var settings = container.settings
@@ -13,6 +14,11 @@ struct SettingsView: View {
                     Button("Elegir…") { chooseFolder() }
                 }
                 Text("Carpeta que contiene las materias y la carpeta «_sistema».").font(.caption).foregroundStyle(.secondary)
+            }
+            Section("Asistente de configuración") {
+                Button("Volver a ejecutar el asistente") { openWindow(id: "onboarding") }
+                Text("Guía paso a paso: carpeta de datos, credenciales del SAIA, agente y dependencias.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             Section("Python") {
                 HStack {
@@ -50,7 +56,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 560, height: 780)
+        .frame(width: 560, height: 820)
         .onChange(of: settings.workspacePath) { _, _ in Task { await container.workspace.reload() } }
         .task(id: settings.pythonPath) { await settings.validatePython() }
         .task(id: settings.binaryPaths) {

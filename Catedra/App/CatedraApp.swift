@@ -11,6 +11,7 @@ struct CatedraApp: App {
         }
         .defaultSize(width: 1280, height: 800)
         .commands {
+            OnboardingCommands()
             CommandGroup(replacing: .newItem) {
                 Button("Sincronizar") { container.sync.start(includeFiles: true) }
                     .keyboardShortcut("r", modifiers: .command)
@@ -19,8 +20,25 @@ struct CatedraApp: App {
             }
         }
 
+        Window("Asistente de configuración", id: "onboarding") {
+            OnboardingView().environment(container)
+        }
+        .windowResizability(.contentSize)
+        .restorationBehavior(.disabled)
+
         Settings {
             SettingsView().environment(container)
+        }
+    }
+}
+
+/// App-menu entry that re-runs the setup wizard.
+struct OnboardingCommands: Commands {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some Commands {
+        CommandGroup(after: .appSettings) {
+            Button("Asistente de configuración…") { openWindow(id: "onboarding") }
         }
     }
 }

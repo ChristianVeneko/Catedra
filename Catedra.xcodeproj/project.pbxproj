@@ -36,6 +36,7 @@
 		33760C48AC8FD569F9855604 /* DependencyCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFF12048BAC09B1252CB93F3 /* DependencyCheck.swift */; };
 		35F0C51C6BD5899D89FCEC36 /* ClaudeMark.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E6C843B7C34951347327C4 /* ClaudeMark.swift */; };
 		3D29D66782A803E53D828D7C /* MoodleAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 373C21933F5DFC33F0003952 /* MoodleAuth.swift */; };
+		3DCEE674356B02B50F8A6A84 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D42846B1A57FA377052890C /* OnboardingView.swift */; };
 		400158FD111BB596351A4D42 /* OnboardingModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1F330D53A06C9CFC3CBBAF9 /* OnboardingModelTests.swift */; };
 		4314D93E4BF2ED3494CE5A75 /* MarkdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A9A3E7638459515F7DE133B /* MarkdownView.swift */; };
 		445CA961841C316A34F18D7C /* SlashCommandCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC76A03EF9A3F6B154411B9E /* SlashCommandCatalogTests.swift */; };
@@ -176,6 +177,7 @@
 		0ACD715C2B21B677CED65F5A /* ContentsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentsViews.swift; sourceTree = "<group>"; };
 		0C7D920F712D723D45E950C4 /* ActivityDiff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityDiff.swift; sourceTree = "<group>"; };
 		0CAA37CCCDA836621AD754E5 /* SyncScriptInstallerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncScriptInstallerTests.swift; sourceTree = "<group>"; };
+		0D42846B1A57FA377052890C /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		113122A75C76A3DEEC48E433 /* antigravity-stream.ndjson */ = {isa = PBXFileReference; path = "antigravity-stream.ndjson"; sourceTree = "<group>"; };
 		11D1303E48EF6820EC0D845E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		139D0B0891399DE6B84E66DA /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
@@ -521,6 +523,7 @@
 				D8C836EF7EDA07B7A39107A4 /* Components */,
 				2AC384A3B878D177ED4CB168 /* Contents */,
 				1CA917E80181C3A1AE89EEA0 /* Dashboard */,
+				AED58755435C3BE7E638540F /* Onboarding */,
 				035C3AF917A9447F6FB4D425 /* Settings */,
 				B13C54FFC81B4040EEA90AA9 /* Sidebar */,
 				3CBAB6DA740B89B4110B106A /* Sync */,
@@ -591,6 +594,14 @@
 				4C414C05AD6F3E9215B6CADD /* Onboarding */,
 			);
 			path = Domain;
+			sourceTree = "<group>";
+		};
+		AED58755435C3BE7E638540F /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				0D42846B1A57FA377052890C /* OnboardingView.swift */,
+			);
+			path = Onboarding;
 			sourceTree = "<group>";
 		};
 		B13C54FFC81B4040EEA90AA9 /* Sidebar */ = {
@@ -852,6 +863,7 @@
 				C3A589B11AE2E1CC94ACADE3 /* MoodleAuthChecker.swift in Sources */,
 				F3EA5B1154812FE8FBD993F2 /* NavigationModel.swift in Sources */,
 				55BF3F2B9636503F20ECE4BC /* OnboardingModel.swift in Sources */,
+				3DCEE674356B02B50F8A6A84 /* OnboardingView.swift in Sources */,
 				1BBB4D302D043DC9D9EE0806 /* OpenCodeEventParser.swift in Sources */,
 				4E265AA74190AAE7E5BDF391 /* OpenCodeProvider.swift in Sources */,
 				BDD70BC0736577EF3058C8CF /* Ports.swift in Sources */,

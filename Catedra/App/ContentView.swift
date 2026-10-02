@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(AppContainer.self) private var container
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         @Bindable var workspace = container.workspace
@@ -29,7 +30,10 @@ struct ContentView: View {
             }
         }
         .sheet(isPresented: $sync.isPresented) { SyncSheet() }
+        .safeAreaInset(edge: .top, spacing: 0) { setupBanner }
         .task {
+            if container.onboarding.consumeAutoPresent() { openWindow(id: "onboarding") }
+            await container.onboarding.refreshWarningIfNeeded()
             await container.workspace.reload()
             await container.agents.load()
             await container.commands.prepare(folder: container.settings.workspaceURL, provider: container.settings.agentProvider)
@@ -37,6 +41,21 @@ struct ContentView: View {
             if container.settings.pythonPath.isEmpty { await container.settings.detectPython() }
         }
         .frame(minWidth: 1000, minHeight: 640)
+    }
+
+    @ViewBuilder
+    private var setupBanner: some View {
+        if let warning = container.onboarding.setupWarning {
+            HStack(spacing: 10) {
+                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                Text(warning).font(.callout).lineLimit(2)
+                Spacer()
+                Button("Abrir asistente") { openWindow(id: "onboarding") }.controlSize(.small)
+            }
+            .padding(.horizontal, 14).padding(.vertical, 8)
+            .background(Color.orange.opacity(0.14))
+            .overlay(alignment: .bottom) { Divider() }
+        }
     }
 
     /// Course the user is currently looking at (sidebar course item or selected activity).
