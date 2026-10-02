@@ -16,7 +16,8 @@ Open `Catedra.xcodeproj` in Xcode and run, or:
     xcodebuild -project Catedra.xcodeproj -scheme Catedra -destination 'platform=macOS' build
     xcodebuild -project Catedra.xcodeproj -scheme Catedra -destination 'platform=macOS' test
 
-The app is not sandboxed (it reads `~/Desktop/UFT` and runs `python3`) and is signed locally ("Sign to Run Locally").
+The app is not sandboxed (it reads `~/Desktop/UFT` and runs `python3`) and is signed with the team's Apple Development identity
+(automatic signing, team `28U4T9UK9R`) so the Keychain ACL ("Permitir siempre") survives rebuilds.
 Settings (⌘,) hold the workspace path, Python interpreter and SAIA credentials.
 
 ## Architecture (hexagonal)
@@ -169,3 +170,40 @@ accept (inserts `/name `), Esc dismisses, click accepts.
   `TEST_RUNNER_CATEDRA_LIVE_AGY=1 xcodebuild … test -only-testing:CatedraTests/CLIAgentRunnerTests`.
 - Under tests, or with `CATEDRA_SKIP_KEYCHAIN=1`, the app does not touch the Keychain. Every rebuild changes the ad-hoc
   signature, which makes macOS show a blocking Keychain access prompt that would hang the test host.
+
+## Menu bar
+A `MenuBarExtra` (style `.window`, toggle in Settings "Mostrar en la barra de menús", default on) shows a graduation-cap glyph
+plus the countdown to the next open deadline ("1 d 7 h"), orange under 24 h and red under 3 h (`MenuBarLabel`, pure; the label is
+rendered as an image so the color survives; the text can be hidden in Settings). The popover has the next activity card
+("Abrir" brings the main window forward and navigates to it, "SAIA" opens the URL), the next 5 pending activities, running
+agents (animated provider mark, elapsed time, "Ver") and the footer: "Sincronizar" (option-click or the menu for "sin archivos";
+shows progress through `SyncModel`), "Abrir Cátedra", Ajustes, Salir. The minute refresh comes from `MinuteClock` (label) and
+`TimelineView(.everyMinute)` (popover). The main window is a single-instance `Window` scene (id `main`).
+
+## Notifications
+`DeadlineReminderPlanner` (pure) turns activities into reminders at 48 h / 24 h / 3 h (plus an optional custom offset) before
+the due date: past fire dates, submitted and undated activities are skipped, ids are stable
+(`catedra.deadline.<folder>|<hours>|<due>`) so re-planning is idempotent, title "Vence en 24 h: <name>", body
+"<course> · <type> · <due, America/Caracas>". `ReminderModel` diffs the pending `UNUserNotificationCenter` requests against the
+plan after every workspace load, sync and settings change (only our prefix is touched; 60 pending max, nearest first) through the
+`NotificationScheduling` port. Permission is requested lazily when reminders are enabled; Settings shows the state, a button
+to open System Settings when denied and "Enviar notificación de prueba". Reminders are **off by default**. Tapping a
+notification opens the app on that activity (`NotificationRouter`, `userInfo.activityID`).
+
+## Command palette
+⌘K (toolbar magnifier, menu "Ir > Buscar…") opens a Spotlight-style overlay: type, ↑/↓, Enter, Esc. `PaletteMatcher` (same tiers
+as `SlashCommandMatcher`, every word must match) ranks per section: Actividades, Materias (open + "Agente de <materia>"),
+Contenidos (files under each `contenidos/`, `_imagenes` excluded; `ContentIndexModel` builds the index lazily in the
+background and refreshes it on workspace changes), Acciones (sync, sync sin archivos, Ajustes, Asistente, Cambiar agente,
+Mostrar Hoy) and Recetas ("Ejecutar <receta> en <actividad seleccionada o que coincide>", opens the agent panel with the prompt
+prefilled, never runs it). With an empty query it shows the last 10 items (`PaletteRecents`, UserDefaults).
+
+## Background sync on launch
+After the workspace loads, `LaunchSyncPolicy` (pure) starts a silent sync when onboarding is completed, SAIA credentials and a
+Python interpreter exist, the mode is not "Desactivada" (Settings > Sincronización: completa / solo datos / desactivada) and the
+last successful sync is older than N minutes (default 30). It shares the single `SyncModel`: nothing starts while a sync runs,
+and pressing ⌘R during a background sync just opens the sheet on the live log. The script runs with utility QoS. A toolbar
+indicator and the "Hoy" header show "Sincronizando…"; the result appears as a 5 s toast (`SyncSummary`, "2 actividades nuevas ·
+1 fecha cambió" or "Sin cambios"), a local notification if the app is in the background and there are new activities or moved
+deadlines, or a warning banner with "Ver detalles" on failure. Set `CATEDRA_DISABLE_LAUNCH_SYNC=1` to disable it (always off
+under tests).
