@@ -14,6 +14,7 @@
 		04803A76EB59EF9D098A0739 /* ActivityKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41A6FF8BADE367716BA8B997 /* ActivityKind.swift */; };
 		05BFDC68313D53C66DBAC82B /* AgentFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70EE9E541BCE69F2C4310440 /* AgentFormatters.swift */; };
 		05EB9E5B4CE27A10E7697632 /* ResumePickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314A738875E37EDA6B034BE4 /* ResumePickerSheet.swift */; };
+		099514D4DA717F703C437546 /* PasteClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FA145E926E608AE155FD75D /* PasteClassifier.swift */; };
 		0BFA47A142B61A560BEFE20B /* DeadlineReminderPlannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53341F2301D3289FBFCDBE27 /* DeadlineReminderPlannerTests.swift */; };
 		0F55CEDAEDF3B669FE449058 /* ActivityDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97D8D1FE7053E5F91B0D81A8 /* ActivityDetailView.swift */; };
 		0F935DA09E5E34A58B1BF05A /* Activity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04251BD9E6DED72B3E9CBAD6 /* Activity.swift */; };
@@ -90,6 +91,7 @@
 		82EEB5DF857C68C75E8C3B99 /* ClaudeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95C3F9BFCC5E4D0E519286ED /* ClaudeProvider.swift */; };
 		86C5FDF65CACA7259B3EF30B /* ContentsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ACD715C2B21B677CED65F5A /* ContentsViews.swift */; };
 		89A6B54860C048B07945DEC7 /* CountdownFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F6BDE49CD0B76A582F11E8C /* CountdownFormatter.swift */; };
+		8AB3940B79F0B7BDFAF02AD7 /* PastedImageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5BD4B014232A6D91A2E976 /* PastedImageStore.swift */; };
 		8E0C283F68191B4CC85912F7 /* SkillScanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86795AA521D8815B690A0E71 /* SkillScanTests.swift */; };
 		8E6A776D76C8EA60ECDE771C /* ActivityListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B22635D6B9D89DF17729272F /* ActivityListView.swift */; };
 		8EBEDF179BF6245C9A55272A /* RecipeCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A59A766062680BE6A7E0D273 /* RecipeCatalogTests.swift */; };
@@ -251,6 +253,7 @@
 		5D130688165A0C6C2B8A36FB /* BoundedProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoundedProcess.swift; sourceTree = "<group>"; };
 		5DA49AE60B1599A53826E9F0 /* ActivityJSONDecoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityJSONDecoderTests.swift; sourceTree = "<group>"; };
 		5F60FF6656F7386B24664880 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		5FA145E926E608AE155FD75D /* PasteClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteClassifier.swift; sourceTree = "<group>"; };
 		6120D632E35AFE58EAC84768 /* ComposerTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComposerTextView.swift; sourceTree = "<group>"; };
 		63D78DF523ADEE4D3B609856 /* SyncLogParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncLogParser.swift; sourceTree = "<group>"; };
 		656B4A3C858ECCC9BB648C00 /* PaletteMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteMatcher.swift; sourceTree = "<group>"; };
@@ -322,6 +325,7 @@
 		C8A3711303774944C3C5EC07 /* AgentPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentPanelView.swift; sourceTree = "<group>"; };
 		CAC8128E669E4389EB24D445 /* OpenCodeEventParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenCodeEventParser.swift; sourceTree = "<group>"; };
 		CB69E8A9C7ACA000789EBFB3 /* MarkdownImageSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownImageSource.swift; sourceTree = "<group>"; };
+		CD5BD4B014232A6D91A2E976 /* PastedImageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastedImageStore.swift; sourceTree = "<group>"; };
 		CE37DB50C6A68FAB0DC130DF /* MarkdownImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownImageView.swift; sourceTree = "<group>"; };
 		D17C4ECD2E495132B1DEBDBE /* FileSystemWorkspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemWorkspace.swift; sourceTree = "<group>"; };
 		D19ECA785FD340A03C405E01 /* ContentIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentIndex.swift; sourceTree = "<group>"; };
@@ -395,6 +399,7 @@
 				88AF021B965DAF69F1C014E7 /* LoginShellEnvironment.swift */,
 				48B65C6A383085B79A1B1533 /* MoodleAuthChecker.swift */,
 				94B9F14A0AA7D865EDEC2F2B /* OpenCodeProvider.swift */,
+				CD5BD4B014232A6D91A2E976 /* PastedImageStore.swift */,
 				04F71AA5E664D502BEE6B4E6 /* PythonSyncAdapter.swift */,
 				B556A1A8AA2F095853BA34D0 /* SyncScriptInstaller.swift */,
 				AA0159487B35BB97080D5485 /* TerminalLauncher.swift */,
@@ -430,6 +435,7 @@
 				EFFE6C6813BBB19FD7A08783 /* ClaudeStreamParser.swift */,
 				472F289DBEFA0E27DCF3AE0C /* ModelListParser.swift */,
 				CAC8128E669E4389EB24D445 /* OpenCodeEventParser.swift */,
+				5FA145E926E608AE155FD75D /* PasteClassifier.swift */,
 				EB3573A717182C63E886DE2E /* PromptHistory.swift */,
 				ED3F79E0355861363D7AF280 /* Recipe.swift */,
 				E9A014AC720014BC55854C3C /* ScopeRelativePath.swift */,
@@ -979,6 +985,8 @@
 				40ADEF0F84E8F2172F2D601D /* PaletteMatcher.swift in Sources */,
 				2097033AA9B5C0D26DFE25F8 /* PaletteModel.swift in Sources */,
 				BAB40D9962B44CA1E5F859F6 /* PaletteRecents.swift in Sources */,
+				099514D4DA717F703C437546 /* PasteClassifier.swift in Sources */,
+				8AB3940B79F0B7BDFAF02AD7 /* PastedImageStore.swift in Sources */,
 				BDD70BC0736577EF3058C8CF /* Ports.swift in Sources */,
 				7CC47F046D75D530BA1E6D90 /* PromptHistory.swift in Sources */,
 				2A04DA31BB9D77713F095824 /* PythonSyncAdapter.swift in Sources */,

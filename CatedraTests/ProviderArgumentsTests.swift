@@ -35,6 +35,18 @@ struct ProviderArgumentsTests {
         #expect(!args(.claude, resume: "").contains("--resume"))
     }
 
+    @Test func claudeAddsDirectoriesOfAttachmentsOutsideCwd() {
+        let a = args(.claude, prompt: "mira @/Users/x/Desktop/a.png y @/Users/x/Desktop/b.png y @/tmp/work/c.pdf")
+        #expect(a.prefix(2) == ["-p", "mira @/Users/x/Desktop/a.png y @/Users/x/Desktop/b.png y @/tmp/work/c.pdf"])
+        #expect(a.filter { $0 == "--add-dir" }.count == 1)
+        let index = a.firstIndex(of: "--add-dir")!
+        #expect(a[index + 1] == "/Users/x/Desktop")
+    }
+
+    @Test func claudeWithoutExternalAttachmentsHasNoAddDir() {
+        #expect(!args(.claude, prompt: "revisa @material/a.pdf").contains("--add-dir"))
+    }
+
     // MARK: Antigravity
 
     @Test func antigravityBaseArguments() {

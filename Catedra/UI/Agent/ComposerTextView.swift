@@ -12,6 +12,8 @@ struct ComposerHandler {
     var historyNext: () -> Bool = { false }
     var dropFiles: ([URL]) -> Void = { _ in }
     var dropTargeted: (Bool) -> Void = { _ in }
+    /// Offered every paste first; return true when it consumed the pasteboard (files / image), false for a text paste.
+    var paste: (NSPasteboard) -> Bool = { _ in false }
 }
 
 /// Multi-line plain-text editor (1–8 lines, then scrolls) that owns Enter / Shift+Enter / Tab / Esc / arrow handling,
@@ -148,6 +150,11 @@ final class ComposerNSTextView: NSTextView {
     override func layout() {
         super.layout()
         (delegate as? ComposerTextView.Coordinator)?.reportHeight()
+    }
+
+    override func paste(_ sender: Any?) {
+        if handler.paste(NSPasteboard.general) { return }
+        super.paste(sender)
     }
 
     // MARK: Placeholder and sizing

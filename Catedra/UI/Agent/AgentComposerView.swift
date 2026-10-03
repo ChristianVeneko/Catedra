@@ -60,7 +60,7 @@ struct AgentComposerView: View {
     private var controls: some View {
         HStack(spacing: 8) {
             Button(action: attach) { Image(systemName: "paperclip").font(.system(size: 14, weight: .medium)) }
-                .buttonStyle(.plain).foregroundStyle(.secondary).help("Adjuntar archivos de esta carpeta (@ruta)")
+                .buttonStyle(.plain).foregroundStyle(.secondary).help("Adjuntar archivos (@ruta). También puede arrastrarlos o pegarlos.")
             modelMenu
             Menu {
                 ForEach(provider.supportedPermissions) { item in
@@ -170,7 +170,8 @@ struct AgentComposerView: View {
             historyPrevious: { model.historyPrevious() },
             historyNext: { model.historyNext() },
             dropFiles: { insert(files: $0) },
-            dropTargeted: { model.isDropTargeted = $0 })
+            dropTargeted: { model.isDropTargeted = $0 },
+            paste: { paste($0) })
     }
 
     private func accept() {
@@ -198,20 +199,35 @@ struct AgentComposerView: View {
         panel.allowsMultipleSelection = true
         panel.directoryURL = scopeFolder
         panel.prompt = "Adjuntar"
-        panel.message = "Elija archivos dentro de esta carpeta"
-        let restriction = ScopeRestriction(base: scopeFolder)
-        panel.delegate = restriction
+        panel.message = "Elija los archivos que desea adjuntar"
         guard panel.runModal() == .OK else { return }
         insert(files: panel.urls)
-        withExtendedLifetime(restriction) {}
     }
 
     private func insert(files: [URL]) {
-        let references = files.compactMap { ScopeRelativePath.reference(for: $0, in: scopeFolder) }
-        attachNotice = references.count < files.count ? "Solo se pueden adjuntar archivos dentro de esta carpeta." : nil
-        model.insertReferences(references)
-        if attachNotice != nil {
-            Task { try? await Task.sleep(for: .seconds(4)); attachNotice = nil }
+        model.insertReferences(files.map { ScopeRelativePath.attachment(for: $0, in: scopeFolder) })
+    }
+
+    /// Files copied in Finder and images (screenshots) are attached; plain text falls through to the normal paste.
+    private func paste(_ pasteboard: NSPasteboard) -> Bool {
+        let urls = (pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL]) ?? []
+        let hasText = pasteboard.string(forType: .string) != nil
+        let hasImage = pasteboard.canReadObject(forClasses: [NSImage.self], options: nil)
+        switch PasteClassifier.classify(fileURLs: urls, hasImage: hasImage, hasText: hasText) {
+        case .files(let files):
+            insert(files: files)
+            return true
+        case .image:
+            guard let png = PastedImageStore.pngData(from: pasteboard) else { return false }
+            do {
+                insert(files: [try PastedImageStore().save(png: png)])
+            } catch {
+                attachNotice = "No se pudo guardar la imagen pegada: \(error.localizedDescription)"
+                Task { try? await Task.sleep(for: .seconds(4)); attachNotice = nil }
+            }
+            return true
+        case .text:
+            return false
         }
     }
 }
@@ -231,16 +247,5 @@ private struct Chip: View {
         .foregroundStyle(tint ?? Color.secondary)
         .padding(.horizontal, 9).padding(.vertical, 4)
         .background((tint ?? Color.secondary).opacity(0.12), in: Capsule())
-    }
-}
-
-/// Keeps the attach panel's selectable items inside the scope folder.
-private final class ScopeRestriction: NSObject, NSOpenSavePanelDelegate {
-    private let basePath: String
-    init(base: URL) { basePath = base.standardizedFileURL.resolvingSymlinksInPath().path }
-
-    func panel(_ sender: Any, shouldEnable url: URL) -> Bool {
-        let path = url.standardizedFileURL.resolvingSymlinksInPath().path
-        return path == basePath || path.hasPrefix(basePath + "/")
     }
 }
