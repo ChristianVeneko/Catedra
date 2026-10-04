@@ -66,6 +66,13 @@ struct ProviderArgumentsTests {
         #expect(a.suffix(4) == ["--model", "gemini-3.1-pro-high", "--conversation", "conv-1"])
     }
 
+    @Test func antigravityAddsDirectoriesOfAttachmentsOutsideCwd() {
+        let a = args(.antigravity, prompt: "mira @/Users/x/Desktop/a.png y @\"/Users/x/Mis Docs/b.pdf\" y @/tmp/work/c.pdf")
+        #expect(a.filter { $0 == "--add-dir" }.count == 2)
+        #expect(a.contains("/Users/x/Desktop") && a.contains("/Users/x/Mis Docs"))
+        #expect(!args(.antigravity, prompt: "revisa @material/a.pdf").contains("--add-dir"))
+    }
+
     // MARK: OpenCode
 
     @Test func openCodeBaseArguments() {
@@ -84,6 +91,16 @@ struct ProviderArgumentsTests {
         #expect(a.contains("-m") && a.contains("ollama/qwen3"))
         #expect(a.contains("--session") && a.contains("ses_1"))
         #expect(a.last == "Hola")
+    }
+
+    @Test func openCodeAttachesFilesOutsideCwd() {
+        let a = args(.opencode, prompt: "mira @/Users/x/Desktop/a.png y @/tmp/work/c.pdf")
+        #expect(a.filter { $0 == "--file" }.count == 1)
+        let index = a.firstIndex(of: "--file")!
+        #expect(a[index + 1] == "/Users/x/Desktop/a.png")
+        #expect(index < a.firstIndex(of: "--")!)
+        #expect(a.last == "mira @/Users/x/Desktop/a.png y @/tmp/work/c.pdf")
+        #expect(!args(.opencode, prompt: "revisa @material/a.pdf").contains("--file"))
     }
 
     @Test func openCodeRunsKnownSlashCommandsWithCommandFlag() {

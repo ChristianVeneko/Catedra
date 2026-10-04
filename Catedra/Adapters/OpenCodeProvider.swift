@@ -1,7 +1,10 @@
 import Foundation
 
 /// `opencode run --format json --dir <cwd> [--agent plan | --auto] [-m provider/model] [-s <session>]
-/// [--command <name>] -- <message>`.
+/// [--file <path>]… [--command <name>] -- <message>`.
+///
+/// Attachments outside the working directory are passed with `--file`: without `--auto` OpenCode rejects reads of
+/// external directories, so the file content travels with the message instead.
 ///
 /// OpenCode has no permission-mode flag: without `--auto` every permission request is auto-rejected, which is the
 /// "accept edits" equivalent here; read-only selects the built-in `plan` agent.
@@ -31,6 +34,7 @@ struct OpenCodeProvider: AgentProvider {
         args += Self.permissionArguments(for: id.normalized(options.permission))
         if let model = options.model, !model.isEmpty { args += ["-m", model] }
         if let session = resume, !session.isEmpty { args += ["--session", session] }
+        for file in ScopeRelativePath.externalFiles(in: prompt, cwd: cwd) { args += ["--file", file] }
         var message = prompt
         if let invocation = Self.commandInvocation(in: prompt, known: knownCommands) {
             args += ["--command", invocation.name]

@@ -49,6 +49,11 @@ struct ScopeRelativePathTests {
         #expect(ScopeRelativePath.extraDirectories(in: prompt, cwd: base) == ["/Users/x/Desktop", "/Users/y"])
         #expect(ScopeRelativePath.extraDirectories(in: "hola", cwd: base) == [])
     }
+
+    @Test func externalFilesAreOutsideCwdAndDeduplicated() {
+        let prompt = "@/Users/x/a.png @/w/curso/b.pdf @/Users/x/a.png @\"/Users/y/c d.pdf\""
+        #expect(ScopeRelativePath.externalFiles(in: prompt, cwd: base) == ["/Users/x/a.png", "/Users/y/c d.pdf"])
+    }
 }
 
 struct PasteClassifierTests {

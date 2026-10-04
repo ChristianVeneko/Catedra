@@ -1,7 +1,8 @@
 import Foundation
 
 /// `agy -p <prompt> --output-format stream-json [--mode plan|accept-edits | --dangerously-skip-permissions]
-/// [--model <id>] [--conversation <id>]`. Print mode runs with stdin closed.
+/// [--add-dir <d>]… [--model <id>] [--conversation <id>]`. Print mode runs with stdin closed. Attachments outside the
+/// working directory get their folder via `--add-dir` so the CLI can read them.
 struct AntigravityProvider: AgentProvider {
     let id = AgentProviderID.antigravity
     let supportsResume = true
@@ -18,6 +19,7 @@ struct AntigravityProvider: AgentProvider {
     func buildArguments(prompt: String, options: AgentOptions, resume: String?, cwd: URL, knownCommands: Set<String>) -> [String] {
         var args = ["-p", prompt, "--output-format", "stream-json"]
         args += Self.permissionArguments(for: id.normalized(options.permission))
+        for directory in ScopeRelativePath.extraDirectories(in: prompt, cwd: cwd) { args += ["--add-dir", directory] }
         if let model = options.model, !model.isEmpty { args += ["--model", model] }
         if let session = resume, !session.isEmpty { args += ["--conversation", session] }
         return args

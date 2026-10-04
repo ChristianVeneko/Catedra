@@ -32,8 +32,8 @@ enum ScopeRelativePath {
         }
     }
 
-    /// Parent folders of absolute references that lie outside `cwd`, deduplicated, in order of appearance.
-    static func extraDirectories(in prompt: String, cwd: URL) -> [String] {
+    /// Absolute references that lie outside `cwd`, standardized and deduplicated, in order of appearance.
+    static func externalFiles(in prompt: String, cwd: URL) -> [String] {
         let base = cwd.standardizedFileURL.resolvingSymlinksInPath().path
         var seen: Set<String> = []
         var result: [String] = []
@@ -41,10 +41,17 @@ enum ScopeRelativePath {
             let file = URL(fileURLWithPath: path).standardizedFileURL
             let resolved = file.resolvingSymlinksInPath().path
             guard resolved != base, !resolved.hasPrefix(base + "/") else { continue }
-            let directory = file.deletingLastPathComponent().path
-            if seen.insert(directory).inserted { result.append(directory) }
+            if seen.insert(file.path).inserted { result.append(file.path) }
         }
         return result
+    }
+
+    /// Parent folders of absolute references that lie outside `cwd`, deduplicated, in order of appearance.
+    static func extraDirectories(in prompt: String, cwd: URL) -> [String] {
+        var seen: Set<String> = []
+        return externalFiles(in: prompt, cwd: cwd)
+            .map { URL(fileURLWithPath: $0).deletingLastPathComponent().path }
+            .filter { seen.insert($0).inserted }
     }
 
     /// Inserts references at `caret` (UTF-16), separated by single spaces, and reports the new caret.
