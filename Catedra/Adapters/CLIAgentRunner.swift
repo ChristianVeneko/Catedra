@@ -10,10 +10,13 @@ final class CLIAgentRunner: AgentRunning, @unchecked Sendable {
     private let environment: @Sendable () -> [String: String]
     private let providers: @Sendable (AgentProviderID) -> any AgentProvider
     private let cancellation: CancellationPolicy
+    private let tracker: ChildProcessTracking?
 
     init(environment: @escaping @Sendable () -> [String: String] = { LoginShellEnvironment.childEnvironment() },
          providers: @escaping @Sendable (AgentProviderID) -> any AgentProvider = { AgentProviders.provider(for: $0) },
-         cancellation: CancellationPolicy = CancellationPolicy()) {
+         cancellation: CancellationPolicy = CancellationPolicy(),
+         tracker: ChildProcessTracking? = nil) {
+        self.tracker = tracker
         self.environment = environment
         self.providers = providers
         self.cancellation = cancellation
@@ -63,6 +66,7 @@ final class CLIAgentRunner: AgentRunning, @unchecked Sendable {
                     continuation.finish()
                     return
                 }
+                tracker?.didStart(.agent(request.runID), pid: process.processIdentifier)
                 DispatchQueue.global(qos: .utility).async {
                     while true {
                         let data = err.fileHandleForReading.availableData
@@ -138,6 +142,7 @@ final class CLIAgentRunner: AgentRunning, @unchecked Sendable {
 
     private func forget(_ id: UUID) {
         lock.lock(); processes[id] = nil; lock.unlock()
+        tracker?.didExit(.agent(id))
     }
 
     private func takeCancelled(_ id: UUID) -> Bool {

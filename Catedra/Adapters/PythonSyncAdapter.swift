@@ -2,6 +2,8 @@ import Foundation
 
 /// Runs the installed `_sistema/sync_moodle.py` (see `SyncScriptInstaller`) with `--root <workspace>` and streams its output. Credentials go only through the process environment.
 struct PythonSyncAdapter: MoodleSyncing {
+    var tracker: ChildProcessTracking?
+
     func run(_ configuration: SyncConfiguration) -> AsyncStream<SyncOutput> {
         AsyncStream { continuation in
             let process = Process()
@@ -42,8 +44,11 @@ struct PythonSyncAdapter: MoodleSyncing {
                 return
             }
 
+            let tracker = self.tracker
+            tracker?.didStart(.sync, pid: process.processIdentifier)
             Task.detached {
                 process.waitUntilExit()
+                tracker?.didExit(.sync)
                 for reader in readers { await reader.value }
                 continuation.yield(.finished(exitCode: process.terminationStatus))
                 continuation.finish()

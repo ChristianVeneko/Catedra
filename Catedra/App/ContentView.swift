@@ -21,6 +21,7 @@ struct ContentView: View {
                     .help("Buscar y ejecutar (⌘K)")
             }
             ToolbarItem(placement: .primaryAction) { RunningAgentsBadge() }
+            ToolbarItem(placement: .primaryAction) { ResourceIndicator() }
             ToolbarItem(placement: .primaryAction) { courseAgentButton }
             ToolbarItem(placement: .primaryAction) {
                 if container.sync.isRunning {

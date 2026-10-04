@@ -12,6 +12,7 @@ final class AppContainer {
     let reader: WorkspaceReading
     let importFiles: ImportFilesUseCase
     let agents: AgentRunRegistry
+    let resources: ResourceMonitorModel
     let commands: SlashCommandCatalog
     let onboarding: OnboardingModel
     let clock = MinuteClock()
@@ -34,12 +35,19 @@ final class AppContainer {
         self.reader = reader
         self.settings = settings
         self.workspace = workspace
+        let processRegistry = ChildProcessRegistry()
         self.sync = SyncModel(
-            useCase: SyncUseCase(syncer: PythonSyncAdapter(), credentials: credentials, reader: reader,
+            useCase: SyncUseCase(syncer: PythonSyncAdapter(tracker: processRegistry), credentials: credentials, reader: reader,
                                   installer: SyncScriptInstaller.bundled()),
             workspace: workspace, notifier: UserNotificationAdapter())
-        self.agents = AgentRunRegistry(runner: CLIAgentRunner(), store: JSONAgentRunStore(),
+        self.agents = AgentRunRegistry(runner: CLIAgentRunner(tracker: processRegistry), store: JSONAgentRunStore(),
                                        notifier: UserNotificationAdapter(), terminal: TerminalLauncher(), settings: settings)
+        let agents = self.agents
+        self.resources = ResourceMonitorModel(
+            sampler: LibprocSampler(), processes: processRegistry, scanner: FileSystemDiskScanner(),
+            runs: { [weak agents] in agents?.runs ?? [] }, workspaceRoot: { [weak settings] in
+                settings?.workspaceURL ?? FileManager.default.homeDirectoryForCurrentUser
+            })
         let commands = SlashCommandCatalog(
             store: JSONSlashCommandCatalogStore(),
             scanners: Dictionary(uniqueKeysWithValues: AgentProviderID.allCases.map {
