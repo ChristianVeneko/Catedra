@@ -1,3 +1,6 @@
+import contextlib
+import io
+import json
 import sys
 import tempfile
 import unittest
@@ -165,3 +168,218 @@ class RootTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---------------------------------------------------------------- phase 4: richer data
+
+GRADE_RES = {"usergrades": [{"gradeitems": [
+    {"itemname": "Tarea 1", "itemtype": "mod", "itemmodule": "assign", "cmid": 77, "graderaw": 8.5,
+     "gradeformatted": "8,50", "grademin": 0, "grademax": 10, "weightraw": 20.0,
+     "percentageformatted": "85 %", "feedback": "<p>Buen <b>trabajo</b></p>",
+     "gradedatesubmitted": 100, "gradedategraded": 200},
+    {"itemname": "Quiz &amp; co", "itemtype": "mod", "itemmodule": "quiz", "cmid": "88", "graderaw": None,
+     "grademax": 20, "percentageformatted": "-"},
+    {"itemname": None, "itemtype": "course", "graderaw": 8.5, "grademax": 100, "percentageformatted": "8.5 %"},
+]}]}
+
+
+class DataDirCase(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.old = (sm.ROOT, sm.DATA)
+        self.addCleanup(lambda: setattr(sm, "ROOT", self.old[0]) or setattr(sm, "DATA", self.old[1]))
+        sm.set_root(self.tmp.name)
+
+
+class GradesTests(DataDirCase):
+    def test_normalize_splits_total_and_strips_feedback(self):
+        out = sm.normalize_grades(5, GRADE_RES)
+        self.assertEqual(out["courseid"], 5)
+        self.assertEqual([i["itemname"] for i in out["items"]], ["Tarea 1", "Quiz & co"])
+        first = out["items"][0]
+        self.assertEqual((first["graderaw"], first["grademax"], first["weightraw"], first["cmid"]), (8.5, 10, 20.0, 77))
+        self.assertEqual(first["feedback"], "Buen trabajo")
+        self.assertEqual((first["gradedatesubmitted"], first["gradedategraded"]), (100, 200))
+        self.assertIsNone(out["items"][1]["graderaw"])
+        self.assertIsNone(out["items"][1]["weightraw"])
+        self.assertEqual(out["items"][1]["cmid"], 88)
+        self.assertEqual(out["total"]["graderaw"], 8.5)
+
+    def test_grade_formatted_drops_icon_markup(self):
+        icon = '<i class="icon fa fa-xmark text-danger fa-fw inline" title="Suspenso" role="img" aria-label="Suspenso"></i>2,00'
+        row = sm.normalize_grade_item({"itemtype": "mod", "gradeformatted": icon})
+        self.assertEqual(row["gradeformatted"], "2,00")
+        self.assertIn("| 2,00 |", sm.grades_table({"id": 5}, 1, {"usergrades": [{"gradeitems": [{"itemname": "Q", "gradeformatted": icon}]}]}))
+
+    def test_write_grades_json_and_empty(self):
+        sm.write_grades_json({"id": 5}, GRADE_RES)
+        data = json.loads((sm.DATA / "grades_5.json").read_text())
+        self.assertEqual(len(data["items"]), 2)
+        sm.write_grades_json({"id": 6}, {})
+        self.assertFalse((sm.DATA / "grades_6.json").exists())
+
+    def test_markdown_table_unchanged_and_single_call(self):
+        with mock.patch.object(sm, "ws", return_value=GRADE_RES) as m:
+            table = sm.grades_table({"id": 5}, 1)
+        self.assertEqual(m.call_count, 1)
+        self.assertTrue(table.startswith("| Item | Nota | Max | % |"))
+        self.assertIn("| Quiz & co | - | 20 | - |", table)
+        self.assertIn("| Total del curso | - | 100 | 8.5 % |", table)
+        with mock.patch.object(sm, "ws") as m:
+            sm.grades_table({"id": 5}, 1, GRADE_RES)
+        m.assert_not_called()
+
+    def test_grades_by_cmid_excludes_total(self):
+        self.assertEqual(set(sm.grades_by_cmid(GRADE_RES)), {77, 88})
+
+
+class ActivityExtrasTests(DataDirCase):
+    def test_extras_full(self):
+        item = sm.grades_by_cmid(GRADE_RES)[77]
+        extra = sm.activity_extras(10, 30, "77", item, "")
+        self.assertEqual(extra, {"opens": 10, "cutoff": 30, "cmid": 77, "gradeRaw": 8.5, "gradeMax": 10,
+                                 "gradedAt": 200, "feedback": "Buen trabajo"})
+
+    def test_extras_omit_missing(self):
+        self.assertEqual(sm.activity_extras(0, None, 5, None, ""), {"cmid": 5})
+        self.assertEqual(sm.activity_extras(None, None, None, None, ""), {})
+
+    def test_submission_feedback_wins_over_grade_feedback(self):
+        item = sm.grades_by_cmid(GRADE_RES)[77]
+        self.assertEqual(sm.activity_extras(0, 0, 77, item, "Del docente")["feedback"], "Del docente")
+
+    def test_extract_feedback_comments_only(self):
+        st = {"feedback": {"plugins": [
+            {"type": "comments", "editorfields": [{"name": "comments", "text": "<p>Revisa la <i>sec. 2</i></p>"}]},
+            {"type": "editpdf", "fileareas": [{"area": "download", "files": [{"filename": "a.pdf"}]}]}]}}
+        self.assertEqual(sm.extract_feedback(st), "Revisa la sec. 2")
+        self.assertEqual(sm.extract_feedback({}), "")
+        self.assertEqual(sm.extract_feedback(None), "")
+
+    def test_sync_assignments_adds_fields_and_keeps_old(self):
+        a = {"id": 1, "cmid": 77, "name": "Tarea 1", "duedate": 500, "allowsubmissionsfromdate": 100,
+             "cutoffdate": 900, "grade": 10, "configs": [], "intro": "x"}
+        course = {"key": "Control", "fullname": "Control", "id": 5}
+        st = {"lastattempt": {"submission": {"status": "submitted"}},
+              "feedback": {"gradefordisplay": "8,50 / 10", "plugins": [
+                  {"type": "comments", "editorfields": [{"text": "Bien"}]}]}}
+        with mock.patch.object(sm, "ws", return_value=st):
+            items = sm.sync_assignments(course, sm.ROOT / "c", [a], False, sm.grades_by_cmid(GRADE_RES))
+        it = items[0]
+        for key in ("course", "type", "name", "due", "status", "grade", "url", "folder"):
+            self.assertIn(key, it)
+        self.assertEqual((it["opens"], it["cutoff"], it["cmid"], it["gradeRaw"], it["gradeMax"], it["feedback"]),
+                         (100, 900, 77, 8.5, 10, "Bien"))
+
+    def test_sync_assignments_without_grades_has_no_new_grade_keys(self):
+        a = {"id": 1, "cmid": 77, "name": "T", "duedate": 0, "configs": []}
+        with mock.patch.object(sm, "ws", return_value={}):
+            it = sm.sync_assignments({"key": "k", "fullname": "k", "id": 1}, sm.ROOT / "c", [a], False)[0]
+        self.assertEqual(set(it) - {"course", "type", "name", "due", "status", "grade", "url", "folder"}, {"cmid"})
+
+
+class CalendarTests(DataDirCase):
+    EVENTS = {"events": [
+        {"id": 1, "name": "T1 &amp; due", "course": {"id": 5, "fullname": "Control"}, "eventtype": "due",
+         "modulename": "assign", "timestart": 999, "timeduration": 0,
+         "url": "https://saia.uft.edu.ve/mod/assign/view.php?id=77&action=editsubmission"},
+        {"id": 2, "name": "Sin curso", "courseid": 6, "timestart": "1000"},
+    ]}
+
+    def test_normalize(self):
+        ev = sm.normalize_events(self.EVENTS, {6: "Otra"})
+        self.assertEqual(ev[0]["name"], "T1 & due")
+        self.assertEqual((ev[0]["courseid"], ev[0]["course"], ev[0]["cmid"]), (5, "Control", 77))
+        self.assertEqual((ev[1]["course"], ev[1]["timestart"], ev[1]["cmid"], ev[1]["url"]), ("Otra", 1000, None, ""))
+
+    def test_sync_calendar_writes_and_requests_week_back(self):
+        with mock.patch.object(sm, "ws", return_value=self.EVENTS) as m:
+            out = sm.sync_calendar([{"id": 6, "fullname": "Otra"}])
+        self.assertEqual(len(out), 2)
+        self.assertEqual(m.call_args.kwargs["timesortfrom"], sm.NOW - 7 * 86400)
+        # Moodle rejects limitnum outside 1..50 ("Limit must be between 1 and 50").
+        self.assertTrue(1 <= m.call_args.kwargs["limitnum"] <= 50)
+        self.assertEqual(len(json.loads((sm.DATA / "calendar.json").read_text())), 2)
+
+    def test_failed_call_writes_nothing(self):
+        for bad in (None, [], {"events": "x"}):
+            with mock.patch.object(sm, "ws", return_value=bad):
+                self.assertIsNone(sm.sync_calendar([]))
+        self.assertFalse((sm.DATA / "calendar.json").exists())
+
+
+class RubricTests(DataDirCase):
+    RUBRIC = {"areas": [{"cmid": 77, "areaname": "submissions", "definitions": [{
+        "method": "rubric", "name": "Rubrica de informe", "description": "<p>Desc</p>",
+        "rubric": {"rubric_criteria": [
+            {"sortorder": 2, "description": "Formato", "levels": [{"score": 1, "definition": "Pobre"}]},
+            {"sortorder": 1, "description": "<b>Contenido</b>", "levels": [
+                {"score": 0, "definition": "Nulo"}, {"score": 4.5, "definition": "Completo"}]}]}}]}]}
+    GUIDE = {"areas": [{"cmid": 78, "definitions": [{
+        "method": "guide", "name": "Guia", "guide": {
+            "guide_criteria": [{"sortorder": 1, "shortname": "Analisis", "description": "Describe",
+                                "descriptionmarkers": "Ver pauta", "maxscore": 5}],
+            "guide_comments": [{"description": "Citar fuentes"}]}}]}]}
+    ITEMS = [{"type": "Tarea", "cmid": 77, "folder": "c/actividades/Tarea - A"},
+             {"type": "Tarea", "cmid": 78, "folder": "c/actividades/Tarea - B"},
+             {"type": "Examen", "folder": "c/actividades/Examen - C"}]
+
+    def run_sync(self, res):
+        with mock.patch.object(sm, "ws", return_value=res) as m:
+            n = sm.sync_rubrics(self.ITEMS)
+        return n, m
+
+    def test_rubric_written_sorted_and_rendered(self):
+        n, m = self.run_sync(self.RUBRIC)
+        self.assertEqual(n, 1)
+        self.assertEqual(m.call_args.kwargs, {"cmids": [77, 78], "areaname": "submissions", "activeonly": 1})
+        data = json.loads((sm.DATA / "rubrics" / "77.json").read_text())
+        self.assertEqual([c["description"] for c in data["criteria"]], ["Contenido", "Formato"])
+        md = (sm.ROOT / "c/actividades/Tarea - A/rubrica.md").read_text()
+        self.assertIn("# Rubrica - Rubrica de informe", md)
+        self.assertIn("## Contenido", md)
+        self.assertIn("- **4.5 pts**: Completo", md)
+
+    def test_guide_rendered(self):
+        n, _ = self.run_sync(self.GUIDE)
+        self.assertEqual(n, 1)
+        md = (sm.ROOT / "c/actividades/Tarea - B/rubrica.md").read_text()
+        self.assertIn("## Analisis (max. 5 pts)", md)
+        self.assertIn("Ver pauta", md)
+        self.assertIn("- Citar fuentes", md)
+
+    def test_no_definitions_or_bad_shape_writes_nothing(self):
+        for res in (None, {"areas": []}, {"areas": "x"}, {"areas": [{"cmid": 77, "definitions": [{"method": "points"}]}]}):
+            n, _ = self.run_sync(res)
+            self.assertEqual(n, 0)
+        self.assertFalse((sm.DATA / "rubrics").exists())
+
+    def test_no_assignments_makes_no_call(self):
+        with mock.patch.object(sm, "ws") as m:
+            self.assertEqual(sm.sync_rubrics([{"type": "Examen", "folder": "x"}]), 0)
+        m.assert_not_called()
+
+
+class OptionalTests(unittest.TestCase):
+    def test_exception_logged_once_and_swallowed(self):
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            out = sm.optional("calendar", lambda: 1 / 0)
+        self.assertIsNone(out)
+        lines = err.getvalue().strip().splitlines()
+        self.assertEqual(len(lines), 1)
+        self.assertIn("calendar skipped", lines[0])
+
+    def test_moodle_exception_response_is_swallowed(self):
+        class R:
+            def json(self):
+                return {"exception": "webservice_access_exception", "message": "Access control exception"}
+        with mock.patch.object(sm.session, "post", return_value=R()), contextlib.redirect_stderr(io.StringIO()) as err:
+            self.assertIsNone(sm.ws("core_grading_get_definitions"))
+            self.assertEqual(sm.optional("rubrics", sm.sync_rubrics, [{"type": "Tarea", "cmid": 1, "folder": "f"}]), 0)
+        self.assertIn("core_grading_get_definitions", err.getvalue())
+
+    def test_unexpected_shape_is_swallowed(self):
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertIsNone(sm.optional("grades json", sm.write_grades_json, {"id": 1}, {"usergrades": "oops"}))

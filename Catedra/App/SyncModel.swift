@@ -22,11 +22,14 @@ final class SyncModel {
     private let useCase: SyncUseCase
     private let workspace: WorkspaceModel
     private let notifier: AgentNotifying?
+    private let notificationPermission: @Sendable () async -> NotificationPermission
     private var task: Task<Void, Never>?
     private var bannerTask: Task<Void, Never>?
     private(set) var launchSyncAttempted = false
 
-    init(useCase: SyncUseCase, workspace: WorkspaceModel, notifier: AgentNotifying? = nil) {
+    init(useCase: SyncUseCase, workspace: WorkspaceModel, notifier: AgentNotifying? = nil,
+         notificationPermission: @escaping @Sendable () async -> NotificationPermission = { .notDetermined }) {
+        self.notificationPermission = notificationPermission
         self.useCase = useCase
         self.workspace = workspace
         self.notifier = notifier
@@ -96,6 +99,7 @@ final class SyncModel {
         guard case .finished(let outcome) = state else { return }
         if case .success(let diff) = outcome {
             workspace.settings.recordSuccessfulSync()
+            await notifyGradeChanges(diff.gradeChanges)
             guard isBackground else { return }
             let text = SyncSummary.text(for: diff)
             show(.summary(text), autoDismiss: true)
@@ -105,6 +109,14 @@ final class SyncModel {
         } else if isBackground, let failure = SyncSummary.failure(for: outcome) {
             show(.failure(failure.text, needsSettings: failure.needsSettings), autoDismiss: false)
         }
+    }
+
+    /// Own toggle, independent of deadline reminders; the notifier stays silent while the app is frontmost.
+    private func notifyGradeChanges(_ changes: [GradeChange]) async {
+        guard let content = GradeChangeNotification.content(for: changes) else { return }
+        let permission = await notificationPermission()
+        guard GradeChangeNotification.isEnabled(preference: workspace.settings.gradeNotificationsPreference, permission: permission) else { return }
+        await notifier?.notifyFinished(title: content.title, body: content.body)
     }
 
     private func show(_ newBanner: Banner, autoDismiss: Bool) {

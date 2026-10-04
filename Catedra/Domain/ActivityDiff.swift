@@ -12,8 +12,10 @@ struct ActivityDiff: Sendable, Equatable {
     var removed: [Activity] = []
     var dueChanges: [Change<Date?>] = []
     var statusChanges: [Change<String>] = []
+    /// Grades or teacher feedback that appeared or changed (from the grade reports and the activities).
+    var gradeChanges: [GradeChange] = []
 
-    var isEmpty: Bool { added.isEmpty && removed.isEmpty && dueChanges.isEmpty && statusChanges.isEmpty }
+    var isEmpty: Bool { added.isEmpty && removed.isEmpty && dueChanges.isEmpty && statusChanges.isEmpty && gradeChanges.isEmpty }
 
     static func compare(before: [Activity], after: [Activity]) -> ActivityDiff {
         func key(_ a: Activity) -> String { a.url?.absoluteString ?? a.folder }

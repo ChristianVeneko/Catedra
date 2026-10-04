@@ -29,6 +29,13 @@ final class SettingsModel {
     /// Background sync on every launch.
     var launchSyncMode: LaunchSyncMode { didSet { defaults.set(launchSyncMode.rawValue, forKey: Keys.launchMode) } }
     var launchSyncMinIntervalMinutes: Int { didSet { defaults.set(launchSyncMinIntervalMinutes, forKey: Keys.launchInterval) } }
+    /// Explicit choice for new-grade notifications; nil until the user decides (then on only if permission is already granted).
+    var gradeNotificationsPreference: Bool? {
+        didSet {
+            if let value = gradeNotificationsPreference { defaults.set(value, forKey: Keys.gradeNotifications) }
+            else { defaults.removeObject(forKey: Keys.gradeNotifications) }
+        }
+    }
     private(set) var lastSuccessfulSync: Date?
     var onRemindersChanged: (@MainActor () -> Void)?
     private(set) var statuses: [AgentProviderID: BinaryStatus] = [:]
@@ -46,6 +53,7 @@ final class SettingsModel {
     private enum Keys {
         static let workspace = "workspacePath", python = "pythonPath"
         static let launchMode = "launchSyncMode", launchInterval = "launchSyncMinutes", lastSuccess = "lastSuccessfulSync"
+        static let gradeNotifications = "grades.notifications"
         static let menuBar = "menuBarVisible", menuBarCountdown = "menuBarShowsCountdown"
         static let remindersEnabled = "reminders.enabled", reminder48 = "reminders.48h", reminder24 = "reminders.24h",
                    reminder3 = "reminders.3h", reminderCustom = "reminders.custom", reminderCustomHours = "reminders.customHours"
@@ -64,6 +72,7 @@ final class SettingsModel {
         self.launchSyncMode = defaults.string(forKey: Keys.launchMode).flatMap(LaunchSyncMode.init(rawValue:)) ?? .full
         self.launchSyncMinIntervalMinutes = max(0, defaults.object(forKey: Keys.launchInterval) as? Int ?? 30)
         self.lastSuccessfulSync = defaults.object(forKey: Keys.lastSuccess) as? Date
+        self.gradeNotificationsPreference = defaults.object(forKey: Keys.gradeNotifications) as? Bool
         var reminders = ReminderPreferences()
         reminders.enabled = defaults.object(forKey: Keys.remindersEnabled) as? Bool ?? false
         reminders.at48h = defaults.object(forKey: Keys.reminder48) as? Bool ?? true

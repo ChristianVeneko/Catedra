@@ -37,6 +37,9 @@ enum PaletteAction: Hashable, Sendable {
     case openSettings
     case openOnboarding
     case showToday
+    case openCalendar
+    case openGrades
+    case newStudyBlock
     case setProvider(AgentProviderID)
     /// Opens the agent panel of the scope with the recipe prompt prefilled (never runs it).
     case runRecipe(recipeID: String, scopeFolder: String, isCourse: Bool)

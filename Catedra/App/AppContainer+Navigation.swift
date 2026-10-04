@@ -83,6 +83,13 @@ extension AppContainer {
             openWindowByID?("onboarding")
         case .showToday:
             navigation.sidebar = .today
+        case .openCalendar:
+            navigation.sidebar = .calendar
+        case .openGrades:
+            navigation.sidebar = .grades
+        case .newStudyBlock:
+            navigation.sidebar = .calendar
+            planner.beginNew(at: planner.nextHour())
         case .setProvider(let provider):
             settings.agentProvider = provider
             Task { await settings.refreshStatus(provider) }

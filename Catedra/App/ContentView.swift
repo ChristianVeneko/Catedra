@@ -59,6 +59,8 @@ struct ContentView: View {
         .task {
             if container.onboarding.consumeAutoPresent() { openWindow(id: "onboarding") }
             await container.onboarding.refreshWarningIfNeeded()
+            container.planner.load()
+            container.grades.load()
             await container.workspace.reload()
             await container.reminders.refreshPermission()
             container.startLaunchSyncIfNeeded()
@@ -112,6 +114,8 @@ struct ContentView: View {
         } else {
             switch container.navigation.sidebar ?? .today {
             case .today: DashboardView()
+            case .calendar: CalendarDayListView()
+            case .grades: GradesListView()
             case .all: ActivityListView(title: "Todas las actividades", activities: ws.allActivitiesSorted)
             case .activities(let id):
                 if let course = course(id) { ActivityListView(title: course.name, activities: ws.activities(in: course)) }
@@ -143,6 +147,10 @@ struct ContentView: View {
                 ContentUnavailableView("Seleccione una actividad", systemImage: "square.and.pencil",
                                        description: Text("Elija una actividad para ver su enunciado y sus archivos."))
             }
+        } else if nav.sidebar == .calendar {
+            CalendarView()
+        } else if nav.sidebar == .grades {
+            GradeDetailView()
         } else if case .agent(let id)? = nav.sidebar, let course = course(id) {
             AgentPanelView(scope: .course(course), color: CoursePalette.color(for: course)).id(course.id)
         } else if let url = nav.selectedNodeURL {

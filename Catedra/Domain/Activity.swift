@@ -10,6 +10,16 @@ struct Activity: Identifiable, Hashable, Sendable {
     let grade: String
     let url: URL?
     let folder: String
+    /// Optional richer data from newer syncs (absent in old `activities.json`).
+    var opens: Date? = nil
+    var cutoff: Date? = nil
+    var gradeRaw: Double? = nil
+    var gradeMax: Double? = nil
+    var feedback: String = ""
+    var gradedAt: Date? = nil
+    var cmid: Int? = nil
+    /// True when Moodle had no due date and `due` holds the cut-off date instead.
+    var dueIsCutoff: Bool = false
 
     var id: String { folder }
 
@@ -17,6 +27,8 @@ struct Activity: Identifiable, Hashable, Sendable {
     var courseFolderName: String {
         folder.split(separator: "/").first.map(String.init) ?? ""
     }
+
+    var hasFeedback: Bool { !feedback.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     var hasGrade: Bool { !grade.trimmingCharacters(in: .whitespaces).isEmpty }
 }

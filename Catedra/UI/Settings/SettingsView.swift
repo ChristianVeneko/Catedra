@@ -33,6 +33,7 @@ struct SettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             RemindersSection(settings: settings)
+            GradeNotificationsSection(settings: settings)
             Section("Asistente de configuración") {
                 Button("Volver a ejecutar el asistente") { openWindow(id: "onboarding") }
                 Text("Guía paso a paso: carpeta de datos, credenciales del SAIA, agente y dependencias.")
@@ -256,5 +257,26 @@ private struct RemindersSection: View {
         case .authorized:
             Label("Notificaciones permitidas.", systemImage: "bell.fill").font(.caption).foregroundStyle(.green)
         }
+    }
+}
+
+/// Own toggle for "nueva nota" notifications: on by default only when the system permission is already granted.
+private struct GradeNotificationsSection: View {
+    @Environment(AppContainer.self) private var container
+    @Bindable var settings: SettingsModel
+
+    var body: some View {
+        let enabled = Binding(
+            get: { GradeChangeNotification.isEnabled(preference: settings.gradeNotificationsPreference, permission: container.reminders.permission) },
+            set: { value in
+                settings.gradeNotificationsPreference = value
+                if value { Task { _ = await UserNotificationScheduler().requestPermission(); await container.reminders.refreshPermission() } }
+            })
+        Section("Notas") {
+            Toggle("Avisarme cuando aparezca o cambie una nota o comentario del profesor", isOn: enabled)
+            Text("Se compara cada sincronización con la anterior. Es independiente de los recordatorios de entregas y solo avisa si Cátedra no está en primer plano.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+        .task { await container.reminders.refreshPermission() }
     }
 }

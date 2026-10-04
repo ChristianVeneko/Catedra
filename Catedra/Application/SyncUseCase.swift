@@ -42,7 +42,7 @@ struct SyncUseCase: Sendable {
                         continuation.yield(.finished(.installFailed(error.localizedDescription))); continuation.finish(); return
                     }
                 }
-                let before = (try? reader.loadSnapshot(root: root))?.activities ?? []
+                let before = (try? reader.loadSnapshot(root: root)) ?? .empty
                 let config = SyncConfiguration(workspaceRoot: root, pythonPath: pythonPath, username: creds.username,
                                                password: creds.password, includeFiles: includeFiles, lowPriority: lowPriority)
                 var loginError: String?
@@ -58,8 +58,10 @@ struct SyncUseCase: Sendable {
                     case .finished(let code):
                         if let loginError { outcome = .loginFailed(loginError) }
                         else if code == 0 {
-                            let after = (try? reader.loadSnapshot(root: root))?.activities ?? []
-                            outcome = .success(ActivityDiff.compare(before: before, after: after))
+                            let after = (try? reader.loadSnapshot(root: root)) ?? .empty
+                            var diff = ActivityDiff.compare(before: before.activities, after: after.activities)
+                            diff.gradeChanges = GradeChangeDetector.changes(before: before, after: after)
+                            outcome = .success(diff)
                         } else { outcome = .failed(exitCode: code) }
                     }
                 }

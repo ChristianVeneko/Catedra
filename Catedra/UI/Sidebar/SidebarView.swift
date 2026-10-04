@@ -8,6 +8,8 @@ struct SidebarView: View {
         List(selection: $nav.sidebar) {
             Section {
                 Label("Hoy", systemImage: "sun.max").tag(SidebarItem.today)
+                Label("Calendario", systemImage: "calendar").tag(SidebarItem.calendar)
+                Label("Notas", systemImage: "chart.bar.doc.horizontal").tag(SidebarItem.grades)
                 Label("Todas las actividades", systemImage: "tray.full").tag(SidebarItem.all)
             }
             Section("Materias") {

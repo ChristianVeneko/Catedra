@@ -56,4 +56,28 @@ struct SyncUseCaseTests {
         #expect(recorder.events == ["install"])
         if case .installFailed? = result {} else { Issue.record("expected installFailed, got \(String(describing: result))") }
     }
+
+    final class SnapshotSequence: @unchecked Sendable { var snapshots: [WorkspaceSnapshot] = [] }
+    struct SequenceReader: WorkspaceReading {
+        let sequence: SnapshotSequence
+        func loadSnapshot(root: URL) throws -> WorkspaceSnapshot { sequence.snapshots.isEmpty ? .empty : sequence.snapshots.removeFirst() }
+        func files(root: URL, activity: Activity) -> ActivityFiles { ActivityFiles() }
+        func contentTree(root: URL, course: Course) -> [ContentNode] { [] }
+        func forums(root: URL, course: Course) -> [ContentNode] { [] }
+    }
+
+    @Test func successOutcomeCarriesNewGrades() async {
+        func snapshot(_ raw: Double?) -> WorkspaceSnapshot {
+            let item = GradeItem(name: "Parcial", itemType: "mod", itemModule: "quiz", cmid: 4, gradeRaw: raw, gradeFormatted: raw.map { "\($0)" } ?? "-",
+                                 gradeMin: 0, gradeMax: 20, weight: nil, percentage: "", feedback: "", submittedAt: nil, gradedAt: nil)
+            return WorkspaceSnapshot(courses: [], activities: [], activitiesWithUserWork: [], lastSync: nil,
+                                     gradeReports: [GradeReport(courseId: 1, items: [item], total: nil)])
+        }
+        let sequence = SnapshotSequence()
+        sequence.snapshots = [snapshot(nil), snapshot(17)]
+        let recorder = Recorder()
+        let useCase = SyncUseCase(syncer: FakeSyncer(recorder: recorder), credentials: FakeCredentials(), reader: SequenceReader(sequence: sequence))
+        guard case .success(let diff)? = await outcome(useCase) else { Issue.record("expected success"); return }
+        #expect(diff.gradeChanges.map(\.kind) == [.newGrade] && diff.gradeChanges.first?.grade == "17.0")
+    }
 }

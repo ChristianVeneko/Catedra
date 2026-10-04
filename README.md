@@ -60,6 +60,68 @@ every sync; the script is then run as `python sync_moodle.py --root <workspace>`
 override the default root, the parent of the script's folder).
 Python tests (stdlib): `cd Catedra/Resources/Sync && python3 -m unittest discover -s tests -v` (needs `requests`).
 
+## Richer SAIA data
+Besides `activities.json`, the sync writes optional files under `_sistema/data/`. The app tolerates any of them missing or
+malformed (empty result, never a crash), and old `activities.json` files still decode.
+- `activities.json` gains optional keys, omitted when unknown: `opens`, `cutoff` (unix seconds, like `due`), `gradeRaw`,
+  `gradeMax` (numbers), `feedback` (teacher feedback as plain text), `gradedAt` (unix seconds), `cmid`.
+- `grades_<courseid>.json`: `{courseid, items[], total}` built from the same `gradereport_user_get_grade_items` response
+  that renders the README table (no extra call). Item keys: `itemname, itemtype, itemmodule, cmid, graderaw,
+  gradeformatted, grademin, grademax, weightraw, percentageformatted, feedback, gradedatesubmitted, gradedategraded`.
+- `calendar.json`: array of `{id, name, courseid, course, eventtype, modulename, timestart, timeduration, url, cmid}` from
+  `core_calendar_get_action_events_by_timesort` (last 7 days onward, up to 100 events).
+- `rubrics/<cmid>.json` and a readable `rubrica.md` in the activity folder, from `core_grading_get_definitions`
+  (`areaname=submissions`, `activeonly=1`), for assignments that define a rubric or marking guide.
+The calendar and grading calls are optional: a Moodle exception (function not enabled for the mobile service), an HTTP
+error or an unexpected shape logs one line to stderr and the sync continues unchanged. In Swift they load into
+`WorkspaceSnapshot` (`gradeReports`, `calendarEvents`, `activitiesWithRubric`); the activity detail shows the teacher
+feedback and the opening/cutoff dates.
+
+## Calendar and study planner
+The "Calendario" sidebar item (next to "Hoy") shows a week view (hours grid for classes and study blocks, a strip for
+deadlines, weekly load: deadlines this week and planned study hours) and a month view (compact chips per day; the day list
+sits in the middle column). Toolbar: Semana/Mes, previous/next, "Hoy", "+" and an export menu.
+- `CalendarBuilder` (pure) merges activity dates (`due` = Entrega, `opens` = Apertura, `cutoff` = Cierre), Moodle calendar events
+  (`meeting_start`/BigBlueButton = Clase, `due`, `close`, `open`, anything else = Evento) and study blocks (Estudio). A calendar
+  event is dropped when it has the same `cmid` and the same instant as one of that activity's dates, so the activity (which links
+  to the activity detail) wins. Clicking an activity opens its detail, a class opens its URL, a study block opens its editor.
+  Course colors reuse `CoursePalette`.
+- Study blocks (title, start, end, optional activity/course, notes, done) are stored in
+  `~/Library/Application Support/Catedra/study-blocks.json` (tolerant decoding), never in the workspace. Click an empty slot,
+  "+" or the palette action "Nuevo bloque de estudio" to create one; "Abrir calendario" is also in the palette.
+- "Exportar a Calendario" (explicit, never automatic) requests full Calendar access through EventKit on first use, creates a
+  calendar named "Cátedra" and upserts events for deadlines (30 min ending at the due time), classes and study blocks within
+  30 days back to 1 year ahead. Each event carries a `catedra-id:<entry id>` marker in its notes; `CalendarExportPlanner` (pure)
+  diffs desired vs existing events by that marker (create / update / delete / extra duplicates removed), so re-exporting never
+  duplicates and entries that disappeared are removed. Only events with the marker in the "Cátedra" calendar are touched.
+  Denied access shows a message pointing to System Settings. EventKit sits behind `CalendarEventStoring`; tests use a fake.
+  The usage string is `NSCalendarsFullAccessUsageDescription` in `project.yml`.
+
+## Grades dashboard
+The "Notas" sidebar item (next to "Calendario") summarizes the `grades_<courseid>.json` files per subject. Detail view: totals,
+a progress bar with the target marker, the "¿Cuánto necesito?" simulator, a Swift Charts cumulative-points chart (by
+`gradedategraded`) and the item table. Palette: "Abrir notas".
+- UFT accumulates by points, so every item weighs its `grademax` and teacher totals are never "fixed". Only `mod`/`manual` rows
+  are summed (`category`/`course` rows are aggregates). `GradeCourseResolver` maps a report to its course folder by matching item
+  `cmid`s against activities (fallback: calendar event course name); unmatched reports show as "Curso <id>".
+- Formulas (`GradeCalculator`, pure): earned = sum of graded points that count (extra credit and grades above the maximum count in
+  full); total possible = sum of `grademax` of counting items; graded possible = same over graded items; remaining = total -
+  graded possible; current % = earned / graded possible; projected = current % x total; target points = target % x total; needed
+  = max(0, target points - earned), average required = needed / remaining. Status: passed (earned >= target), unreachable
+  (earned + remaining < target), at risk (projection < target), otherwise on track.
+- "Extra" and "Bonus" items add earned points but never possible points. Makeups ("Diferido", "Sustitutivo") are left out of the
+  possible points until graded; any item can be marked "No cuenta" to leave the arithmetic entirely (use it on the exam a makeup
+  replaces).
+- Subjects can merge courses (e.g. "Electrónica II" + "Laboratorio de Electrónica II", 50 + 50 = 100). A "Laboratorio de X"
+  course matching a course named "X" (accent/case insensitive) is suggested; accept, dismiss or merge by hand from "Agrupar materias".
+- The passing target defaults to 50 % of the total and is stored per subject (merged subjects use the sorted course folders as id).
+- Persistence: `~/Library/Application Support/Catedra/grade-settings.json` (`groups`, `targets`, `excludedItems`,
+  `dismissedSuggestions`; tolerant decoding), never the workspace.
+- Notifications: `GradeChangeDetector` compares the snapshots before and after a sync (grade reports plus the activities'
+  `grade`/`feedback`) and adds `gradeChanges` to `ActivityDiff` (shown in the sync summary). A system notification fires for new
+  or changed grades and new teacher feedback when Settings > "Notas" is on. That toggle is independent of deadline reminders; until
+  the user chooses, it is on only if the notification permission was already granted. Nothing is reported for a course's first sync.
+
 ## Images
 The script downloads the `<img>` images of every HTML it converts (assignment and quiz statements, pages and books,
 labels, forum posts) into an `_imagenes/` folder next to the generated Markdown and rewrites the references to relative

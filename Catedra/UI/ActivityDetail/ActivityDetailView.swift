@@ -46,6 +46,13 @@ struct ActivityDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 header(activity, course: course, color: color)
+                if activity.hasFeedback {
+                    VStack(alignment: .leading, spacing: 10) {
+                        SectionHeader(title: "Retroalimentación del docente")
+                        Text(activity.feedback).textSelection(.enabled)
+                            .padding(16).frame(maxWidth: .infinity, alignment: .leading).card()
+                    }
+                }
                 if let statement = model.statement {
                     VStack(alignment: .leading, spacing: 10) {
                         SectionHeader(title: "Enunciado")
@@ -90,7 +97,7 @@ struct ActivityDetailView: View {
             HStack(alignment: .lastTextBaseline, spacing: 12) {
                 if let due = activity.due {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Fecha límite").font(.caption).foregroundStyle(.secondary)
+                        Text(activity.dueIsCutoff ? "Fecha límite (cierre)" : "Fecha límite").font(.caption).foregroundStyle(.secondary)
                         Text(Formatters.due(due)).font(.headline)
                     }
                     if state != .submitted { CountdownText(due: due, font: .system(size: 28, weight: .bold, design: .rounded)) }
@@ -99,6 +106,13 @@ struct ActivityDetailView: View {
                 }
                 Spacer()
                 if activity.hasGrade { Label(activity.grade, systemImage: "star.fill").foregroundStyle(.yellow) }
+            }
+            if activity.opens != nil || activity.cutoff != nil {
+                HStack(spacing: 16) {
+                    if let opens = activity.opens { Text("Abre: \(Formatters.due(opens))") }
+                    if let cutoff = activity.cutoff, !activity.dueIsCutoff { Text("Cierre: \(Formatters.due(cutoff))") }
+                }
+                .font(.caption).foregroundStyle(.secondary)
             }
             HStack {
                 if let url = activity.url {

@@ -3,6 +3,8 @@ import Observation
 
 enum SidebarItem: Hashable {
     case today
+    case calendar
+    case grades
     case all
     case activities(String)
     case contents(String)
@@ -13,14 +15,14 @@ enum SidebarItem: Hashable {
     var courseID: String? {
         switch self {
         case .activities(let id), .contents(let id), .forums(let id), .agent(let id): id
-        case .today, .all: nil
+        case .today, .calendar, .grades, .all: nil
         }
     }
 
     var showsActivities: Bool {
         switch self {
         case .today, .all, .activities: true
-        case .contents, .forums, .agent: false
+        case .calendar, .grades, .contents, .forums, .agent: false
         }
     }
 }

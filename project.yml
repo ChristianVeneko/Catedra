@@ -31,6 +31,7 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: "Cátedra"
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.education
         INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription: "Cátedra necesita acceso a Calendario para exportar sus entregas, clases y bloques de estudio al calendario «Cátedra»."
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CURRENT_PROJECT_VERSION: 1

@@ -333,6 +333,35 @@ def write(path: Path, text):
     path.write_text(text, encoding="utf-8")
 
 
+def optional(label, fn, *args, **kwargs):
+    """Run an optional enrichment step; on any failure log one line and return None."""
+    try:
+        return fn(*args, **kwargs)
+    except Exception as exc:  # unexpected shape, disk error...: never abort the sync
+        print(f"  ! {label} skipped: {type(exc).__name__}: {exc}", file=sys.stderr)
+        return None
+
+
+def num(value):
+    """Return value as int/float, or None when it is not a number (bools and strings excluded)."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return value
+
+
+def moodle_int(value):
+    """Moodle sometimes returns ids and timestamps as numeric strings."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def cmid_from_url(url):
+    m = re.search(r"/mod/[^/?#]+/[^?#]*\?(?:[^#]*&)?id=(\d+)", url or "")
+    return int(m.group(1)) if m else None
+
+
 # ---------------------------------------------------------------- auth
 
 def resolve_token(args):
@@ -454,7 +483,20 @@ def assignment_status(a):
     return label, html_to_text(graded) if graded else "", st
 
 
-def sync_assignments(course, cdir, assigns, fetch):
+def extract_feedback(st):
+    """Teacher feedback text (comments/editor fields only) from a submission status response."""
+    parts = []
+    plugins = ((st or {}).get("feedback") or {}).get("plugins") or []
+    for plugin in plugins:
+        for field in (plugin or {}).get("editorfields") or []:
+            text = html_to_text((field or {}).get("text"))
+            if text:
+                parts.append(text)
+    return "\n\n".join(parts)
+
+
+def sync_assignments(course, cdir, assigns, fetch, grades=None):
+    grades = grades or {}
     items = []
     for a in assigns:
         label, grade, st = assignment_status(a)
@@ -490,10 +532,14 @@ def sync_assignments(course, cdir, assigns, fetch):
                       "due": a.get("duedate") or 0, "status": label, "grade": grade,
                       "url": f"{SITE}/mod/assign/view.php?id={a['cmid']}",
                       "folder": str(adir.relative_to(ROOT))})
+        items[-1].update(optional("activity extras", lambda: activity_extras(
+            a.get("allowsubmissionsfromdate"), a.get("cutoffdate"), a["cmid"],
+            grades.get(moodle_int(a["cmid"])), extract_feedback(st))) or {})
     return items
 
 
-def sync_quizzes(course, cdir, quizzes, fetch=True):
+def sync_quizzes(course, cdir, quizzes, fetch=True, grades=None):
+    grades = grades or {}
     items = []
     for q in quizzes:
         attempts = (ws("mod_quiz_get_user_attempts", quizid=q["id"], status="all") or {}).get("attempts", [])
@@ -535,19 +581,206 @@ def sync_quizzes(course, cdir, quizzes, fetch=True):
                       "due": close, "status": label, "grade": grade,
                       "url": f"{SITE}/mod/quiz/view.php?id={q['coursemodule']}",
                       "folder": str(qdir.relative_to(ROOT))})
+        items[-1].update(optional("activity extras", activity_extras, open_, None, q["coursemodule"],
+                                  grades.get(moodle_int(q["coursemodule"])), "") or {})
     return items
 
 
-def grades_table(course, userid):
-    res = ws("gradereport_user_get_grade_items", courseid=course["id"], userid=userid) or {}
+def fetch_grade_items(course, userid):
+    return ws("gradereport_user_get_grade_items", courseid=course["id"], userid=userid) or {}
+
+
+def grades_table(course, userid, res=None):
+    if res is None:
+        res = fetch_grade_items(course, userid)
     rows = []
     for g in (res.get("usergrades") or [{}])[0].get("gradeitems", []):
         rows.append(f"| {html.unescape(g.get('itemname') or 'Total del curso')} | "
-                    f"{g.get('gradeformatted') or '-'} | {g.get('grademax', '-')} | "
+                    f"{html_to_text(g.get('gradeformatted')) or '-'} | {g.get('grademax', '-')} | "
                     f"{g.get('percentageformatted') or '-'} |")
     if not rows:
         return "_Sin calificaciones publicadas._"
     return "| Item | Nota | Max | % |\n|---|---|---|---|\n" + "\n".join(rows)
+
+
+def normalize_grade_item(g):
+    return {
+        "itemname": html.unescape(g.get("itemname") or ""),
+        "itemtype": g.get("itemtype") or "",
+        "itemmodule": g.get("itemmodule") or "",
+        "cmid": moodle_int(g.get("cmid")) or None,
+        "graderaw": num(g.get("graderaw")),
+        "gradeformatted": html_to_text(g.get("gradeformatted")),
+        "grademin": num(g.get("grademin")),
+        "grademax": num(g.get("grademax")),
+        "weightraw": num(g.get("weightraw")),
+        "percentageformatted": g.get("percentageformatted") or "",
+        "feedback": html_to_text(g.get("feedback")),
+        "gradedatesubmitted": moodle_int(g.get("gradedatesubmitted")) or None,
+        "gradedategraded": moodle_int(g.get("gradedategraded")) or None,
+    }
+
+
+def normalize_grades(course_id, res):
+    """Split a gradereport_user_get_grade_items response into items and the course total."""
+    raw = (res.get("usergrades") or [{}])[0].get("gradeitems") or []
+    items, total = [], None
+    for g in raw:
+        row = normalize_grade_item(g)
+        if row["itemtype"] == "course":
+            total = row
+        else:
+            items.append(row)
+    return {"courseid": course_id, "items": items, "total": total}
+
+
+def write_grades_json(course, res):
+    if not (res.get("usergrades") or [{}])[0].get("gradeitems"):
+        return
+    write(DATA / f"grades_{course['id']}.json",
+          json.dumps(normalize_grades(course["id"], res), ensure_ascii=False, indent=1))
+
+
+def grades_by_cmid(res):
+    out = {}
+    for g in (res.get("usergrades") or [{}])[0].get("gradeitems") or []:
+        cmid = moodle_int(g.get("cmid"))
+        if cmid and g.get("itemtype") != "course":
+            out[cmid] = normalize_grade_item(g)
+    return out
+
+
+def activity_extras(opens, cutoff, cmid, grade_item, feedback):
+    """Optional activities.json fields; keys are omitted when the value is unknown."""
+    extra = {}
+    if opens:
+        extra["opens"] = opens
+    if cutoff:
+        extra["cutoff"] = cutoff
+    cmid = moodle_int(cmid)
+    if cmid:
+        extra["cmid"] = cmid
+    if grade_item:
+        if grade_item.get("graderaw") is not None:
+            extra["gradeRaw"] = grade_item["graderaw"]
+        if grade_item.get("grademax") is not None:
+            extra["gradeMax"] = grade_item["grademax"]
+        if grade_item.get("gradedategraded"):
+            extra["gradedAt"] = grade_item["gradedategraded"]
+        feedback = feedback or grade_item.get("feedback")
+    if feedback:
+        extra["feedback"] = feedback
+    return extra
+
+
+# ---------------------------------------------------------------- calendar
+
+def normalize_events(res, course_names=None):
+    course_names = course_names or {}
+    events = []
+    for e in (res or {}).get("events") or []:
+        course = e.get("course") or {}
+        cid = moodle_int(course.get("id") or e.get("courseid"))
+        url = e.get("url") or ((e.get("action") or {}).get("url")) or ""
+        events.append({
+            "id": moodle_int(e.get("id")),
+            "name": html.unescape(e.get("name") or ""),
+            "courseid": cid or None,
+            "course": course.get("fullname") or course_names.get(cid) or "",
+            "eventtype": e.get("eventtype") or "",
+            "modulename": e.get("modulename") or "",
+            "timestart": moodle_int(e.get("timestart")),
+            "timeduration": moodle_int(e.get("timeduration")),
+            "url": url,
+            "cmid": cmid_from_url(url),
+        })
+    return events
+
+
+def sync_calendar(courses, days_back=7, limit=50):  # Moodle caps limitnum at 50
+    res = ws("core_calendar_get_action_events_by_timesort",
+             timesortfrom=NOW - days_back * 86400, limitnum=limit)
+    if not isinstance(res, dict) or not isinstance(res.get("events"), list):
+        return None
+    names = {c["id"]: c["fullname"] for c in courses}
+    events = normalize_events(res, names)
+    write(DATA / "calendar.json", json.dumps(events, ensure_ascii=False, indent=1))
+    return events
+
+
+# ---------------------------------------------------------------- rubrics
+
+def normalize_definition(cmid, d):
+    """Normalize a core_grading_get_definitions definition; None when it is not a rubric/guide."""
+    method = d.get("method")
+    base = {"cmid": cmid, "method": method, "name": html.unescape(d.get("name") or ""),
+            "description": html_to_text(d.get("description"))}
+    if method == "rubric":
+        crit = (d.get("rubric") or {}).get("rubric_criteria") or []
+        base["criteria"] = [{
+            "description": html_to_text(c.get("description")),
+            "levels": [{"score": num(l.get("score")), "definition": html_to_text(l.get("definition"))}
+                       for l in c.get("levels") or []],
+        } for c in sorted(crit, key=lambda c: c.get("sortorder") or 0)]
+    elif method == "guide":
+        guide = d.get("guide") or {}
+        crit = guide.get("guide_criteria") or []
+        base["criteria"] = [{
+            "shortname": html_to_text(c.get("shortname")),
+            "description": html_to_text(c.get("description")),
+            "markers": html_to_text(c.get("descriptionmarkers")),
+            "maxscore": num(c.get("maxscore")),
+        } for c in sorted(crit, key=lambda c: c.get("sortorder") or 0)]
+        base["comments"] = [html_to_text(c.get("description")) for c in guide.get("guide_comments") or []
+                            if html_to_text(c.get("description"))]
+    else:
+        return None
+    return base
+
+
+def render_rubric(r):
+    lines = [f"# Rubrica - {r['name'] or 'Evaluacion'}", ""]
+    lines.append("- Tipo: " + ("Rubrica" if r["method"] == "rubric" else "Guia de correccion"))
+    if r.get("description"):
+        lines += ["", r["description"]]
+    for c in r["criteria"]:
+        if r["method"] == "rubric":
+            lines += ["", f"## {c['description'] or 'Criterio'}", ""]
+            for lv in c["levels"]:
+                score = "-" if lv["score"] is None else f"{lv['score']:g}"
+                lines.append(f"- **{score} pts**: {lv['definition'] or '-'}")
+        else:
+            maxscore = "-" if c["maxscore"] is None else f"{c['maxscore']:g}"
+            lines += ["", f"## {c['shortname'] or 'Criterio'} (max. {maxscore} pts)", ""]
+            if c["description"]:
+                lines.append(c["description"])
+            if c["markers"]:
+                lines += ["", f"_Para el corrector:_ {c['markers']}"]
+    if r.get("comments"):
+        lines += ["", "## Comentarios frecuentes", "", *[f"- {t}" for t in r["comments"]]]
+    return "\n".join(lines) + "\n"
+
+
+def sync_rubrics(items):
+    """Write rubrics/<cmid>.json and rubrica.md for assignments that define a rubric or guide."""
+    folders = {it["cmid"]: it["folder"] for it in items if it.get("cmid") and it["type"] == "Tarea"}
+    if not folders:
+        return 0
+    res = ws("core_grading_get_definitions", cmids=sorted(folders), areaname="submissions", activeonly=1)
+    if not isinstance(res, dict) or not isinstance(res.get("areas"), list):
+        return 0
+    written = 0
+    for area in res["areas"]:
+        cmid = moodle_int(area.get("cmid"))
+        for d in area.get("definitions") or []:
+            r = normalize_definition(cmid, d)
+            if not r or not r["criteria"] or cmid not in folders:
+                continue
+            write(DATA / "rubrics" / f"{cmid}.json", json.dumps(r, ensure_ascii=False, indent=1))
+            write(ROOT / folders[cmid] / "rubrica.md", render_rubric(r))
+            written += 1
+            break
+    return written
 
 
 # ---------------------------------------------------------------- dashboard
@@ -628,8 +861,11 @@ def main():
         print(f"> {folder}")
         sections, outline = sync_contents(course, cdir, fetch)
         sync_forums(course, cdir, sections, fetch)
-        items = sync_assignments(course, cdir, assigns.get(course["id"], []), fetch)
-        items += sync_quizzes(course, cdir, quizzes.get(course["id"], []), fetch)
+        grade_res = fetch_grade_items(course, userid)
+        optional("grades json", write_grades_json, course, grade_res)
+        by_cmid = optional("grades by cmid", grades_by_cmid, grade_res) or {}
+        items = sync_assignments(course, cdir, assigns.get(course["id"], []), fetch, by_cmid)
+        items += sync_quizzes(course, cdir, quizzes.get(course["id"], []), fetch, by_cmid)
         for i in items:
             i["folder"] = str(Path(i["folder"]))
         all_items += items
@@ -650,7 +886,7 @@ def main():
             "",
             "## Calificaciones",
             "",
-            grades_table(course, userid),
+            grades_table(course, userid, grade_res),
             "",
             "## Estructura del aula",
             *outline,
@@ -660,6 +896,8 @@ def main():
         summary.append(course)
 
     render_dashboard(all_items, summary)
+    optional("calendar", sync_calendar, courses)
+    optional("rubrics", sync_rubrics, all_items)
     print(f"Done: {len(all_items)} activities, dashboard at {ROOT / 'PENDIENTES.md'}")
 
 

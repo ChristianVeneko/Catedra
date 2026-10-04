@@ -19,6 +19,8 @@ final class AppContainer {
     let reminders: ReminderModel
     let contentIndex: ContentIndexModel
     let palette = PaletteModel()
+    let planner = CalendarModel()
+    let grades = GradesModel()
     let notificationRouter = NotificationRouter()
     /// Opens a window scene by id; registered by views that have access to `openWindow`.
     var openWindowByID: (@MainActor (String) -> Void)?
@@ -39,7 +41,8 @@ final class AppContainer {
         self.sync = SyncModel(
             useCase: SyncUseCase(syncer: PythonSyncAdapter(tracker: processRegistry), credentials: credentials, reader: reader,
                                   installer: SyncScriptInstaller.bundled()),
-            workspace: workspace, notifier: UserNotificationAdapter())
+            workspace: workspace, notifier: UserNotificationAdapter(),
+            notificationPermission: { await UserNotificationScheduler().permission() })
         self.agents = AgentRunRegistry(runner: CLIAgentRunner(tracker: processRegistry), store: JSONAgentRunStore(),
                                        notifier: UserNotificationAdapter(), terminal: TerminalLauncher(), settings: settings)
         let agents = self.agents

@@ -51,6 +51,7 @@ enum SyncSummary {
         add(diff.removed.count, "actividad eliminada", "actividades eliminadas")
         add(diff.dueChanges.count, "fecha cambió", "fechas cambiaron")
         add(diff.statusChanges.count, "estado cambió", "estados cambiaron")
+        add(diff.gradeChanges.count, "nota nueva", "notas nuevas")
         return parts.isEmpty ? "Sin cambios" : parts.joined(separator: " · ")
     }
 

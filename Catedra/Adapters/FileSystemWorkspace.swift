@@ -21,17 +21,43 @@ struct FileSystemWorkspace: WorkspaceReading {
         }
 
         var withWork = Set<Activity.ID>()
-        for activity in activities where files(root: root, activity: activity).hasUserWork {
-            withWork.insert(activity.id)
+        var withRubric = Set<Activity.ID>()
+        for activity in activities {
+            let f = files(root: root, activity: activity)
+            if f.hasUserWork { withWork.insert(activity.id) }
+            if f.hasRubric { withRubric.insert(activity.id) }
         }
-        return WorkspaceSnapshot(courses: courses, activities: activities, activitiesWithUserWork: withWork, lastSync: lastSync)
+        return WorkspaceSnapshot(
+            courses: courses, activities: activities, activitiesWithUserWork: withWork, lastSync: lastSync,
+            gradeReports: loadGradeReports(root: root), calendarEvents: loadCalendarEvents(root: root),
+            activitiesWithRubric: withRubric)
     }
 
     func files(root: URL, activity: Activity) -> ActivityFiles {
         let base = root.appendingPathComponent(activity.folder, isDirectory: true)
         func list(_ name: String) -> [URL] { visibleChildren(of: base.appendingPathComponent(name, isDirectory: true)) }
         return ActivityFiles(material: list("material"), entrega: list("entrega"),
-                             preparacion: list("preparacion"), apuntes: list("apuntes"))
+                             preparacion: list("preparacion"), apuntes: list("apuntes"),
+                             hasRubric: FileManager.default.fileExists(atPath: base.appendingPathComponent(Self.rubricFileName).path))
+    }
+
+    static let rubricFileName = "rubrica.md"
+    static let calendarRelativePath = "_sistema/data/calendar.json"
+
+    /// `grades_<courseid>.json` files; unreadable or malformed ones are skipped.
+    private func loadGradeReports(root: URL) -> [GradeReport] {
+        let dataDir = root.appendingPathComponent("_sistema/data", isDirectory: true)
+        let names = ((try? FileManager.default.contentsOfDirectory(atPath: dataDir.path)) ?? [])
+            .filter { $0.hasPrefix("grades_") && $0.hasSuffix(".json") }
+        return names.compactMap { name in
+            (try? Data(contentsOf: dataDir.appendingPathComponent(name))).flatMap { try? GradeReportDecoder.decode($0) }
+        }.sorted { $0.courseId < $1.courseId }
+    }
+
+    private func loadCalendarEvents(root: URL) -> [CalendarEvent] {
+        let url = root.appendingPathComponent(Self.calendarRelativePath)
+        guard let data = try? Data(contentsOf: url) else { return [] }
+        return (try? CalendarEventDecoder.decode(data)) ?? []
     }
 
     func contentTree(root: URL, course: Course) -> [ContentNode] {
