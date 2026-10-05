@@ -227,7 +227,11 @@ struct AgentComposerView: View {
             }
             return true
         case .text:
-            return false
+            // Text that is only paths to existing files attaches them like Finder files.
+            guard let text = pasteboard.string(forType: .string),
+                  let files = PasteClassifier.filePaths(in: text, fileExists: { FileManager.default.fileExists(atPath: $0) }) else { return false }
+            insert(files: files)
+            return true
         }
     }
 }

@@ -58,7 +58,7 @@ struct ComposerTextView: NSViewRepresentable {
         textView.textContainerInset = NSSize(width: 0, height: Self.verticalInset)
         textView.placeholder = placeholder
         textView.handler = handler
-        textView.registerForDraggedTypes([NSPasteboard.PasteboardType.fileURL])
+        textView.registerForDraggedTypes([.fileURL, .png, .tiff])
         textView.string = model.text
         textView.setSelectedRange(model.selection)
 
@@ -155,6 +155,41 @@ final class ComposerNSTextView: NSTextView {
     override func paste(_ sender: Any?) {
         if handler.paste(NSPasteboard.general) { return }
         super.paste(sender)
+    }
+
+    override func pasteAsPlainText(_ sender: Any?) {
+        if handler.paste(NSPasteboard.general) { return }
+        super.pasteAsPlainText(sender)
+    }
+
+    override func pasteAsRichText(_ sender: Any?) {
+        if handler.paste(NSPasteboard.general) { return }
+        super.pasteAsRichText(sender)
+    }
+
+    /// Screenshots (png/tiff only) and copied files carry no plain-text type, so a plain-text view would disable ⌘V.
+    override var readablePasteboardTypes: [NSPasteboard.PasteboardType] {
+        var types = super.readablePasteboardTypes
+        for type in [NSPasteboard.PasteboardType.png, .tiff, .fileURL] where !types.contains(type) { types.append(type) }
+        return types
+    }
+
+    private static let pasteActions: Set<Selector> = [#selector(NSText.paste(_:)), #selector(NSTextView.pasteAsPlainText(_:)), #selector(NSTextView.pasteAsRichText(_:))]
+
+    private var pasteboardHasAttachable: Bool {
+        let pasteboard = NSPasteboard.general
+        if pasteboard.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) { return true }
+        return pasteboard.canReadObject(forClasses: [NSImage.self], options: nil)
+    }
+
+    override func validateUserInterfaceItem(_ item: any NSValidatedUserInterfaceItem) -> Bool {
+        if let action = item.action, Self.pasteActions.contains(action), isEditable, pasteboardHasAttachable { return true }
+        return super.validateUserInterfaceItem(item)
+    }
+
+    override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if let action = menuItem.action, Self.pasteActions.contains(action), isEditable, pasteboardHasAttachable { return true }
+        return super.validateMenuItem(menuItem)
     }
 
     // MARK: Placeholder and sizing
