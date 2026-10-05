@@ -9,7 +9,9 @@ struct DashboardView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
                     header
+                    WeeklySummaryCard(now: context.date)
                     if let hero = agenda.hero { HeroCard(activity: hero) }
+                    if container.review.hasAnyCards { TodayReviewCard(today: ReviewDay(date: context.date)) }
                     if !agenda.overdue.isEmpty {
                         SectionHeader(title: "Vencidas", count: agenda.overdue.count)
                         cards(agenda.overdue, now: context.date)
@@ -37,6 +39,7 @@ struct DashboardView: View {
                 .animation(.snappy, value: agenda)
             }
         }
+        .onAppear { container.review.reload(courses: container.workspace.snapshot.courses, root: container.workspace.root) }
         .navigationTitle("Hoy")
         .navigationSplitViewColumnWidth(min: 380, ideal: 460, max: 640)
     }

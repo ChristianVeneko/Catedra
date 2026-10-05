@@ -10,6 +10,9 @@ struct SidebarView: View {
                 Label("Hoy", systemImage: "sun.max").tag(SidebarItem.today)
                 Label("Calendario", systemImage: "calendar").tag(SidebarItem.calendar)
                 Label("Notas", systemImage: "chart.bar.doc.horizontal").tag(SidebarItem.grades)
+                Label("Repaso", systemImage: "rectangle.on.rectangle")
+                    .badge(container.review.todayCount(today: ReviewDay(date: container.clock.now)))
+                    .tag(SidebarItem.review)
                 Label("Todas las actividades", systemImage: "tray.full").tag(SidebarItem.all)
             }
             Section("Materias") {
@@ -57,6 +60,28 @@ private struct CourseDisclosure: View {
                     .frame(width: 22, height: 22)
                     .background(color.gradient, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             }
+            .contextMenu { AutopilotCourseMenu(course: course) }
+        }
+    }
+}
+
+/// Per-course choice for the new-activity autopilot (context menu of the course).
+struct AutopilotCourseMenu: View {
+    @Environment(AppContainer.self) private var container
+    let course: Course
+
+    var body: some View {
+        let current = container.settings.autopilotOverride(forCourse: course.folderName)
+        Menu("Piloto automático") {
+            ForEach(AutopilotOverride.allCases, id: \.self) { option in
+                Button {
+                    container.settings.setAutopilotOverride(option, forCourse: course.folderName)
+                } label: {
+                    if option == current { Label(option.label, systemImage: "checkmark") } else { Text(option.label) }
+                }
+            }
+            Divider()
+            Text("Ejecuta agentes automáticamente y consume créditos.")
         }
     }
 }

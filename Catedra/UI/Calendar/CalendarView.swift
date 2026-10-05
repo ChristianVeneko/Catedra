@@ -56,6 +56,11 @@ struct CalendarView: View {
             if planner.mode == .week {
                 CalendarPill(symbol: "flag.fill", text: "\(load.deadlines) \(load.deadlines == 1 ? "entrega" : "entregas")")
                 CalendarPill(symbol: "book", text: "\(CalendarFormat.hours(load.studyHours)) de estudio")
+                if let first = days.first, let end = planner.layout.calendar.date(byAdding: .day, value: 7, to: first),
+                   let focusText = FocusAggregation.weekComparisonText(
+                       actualMinutes: container.focus.minutes(in: DateInterval(start: first, end: end)), plannedHours: load.studyHours) {
+                    CalendarPill(symbol: "timer", text: focusText)
+                }
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 10)

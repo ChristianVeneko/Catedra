@@ -72,6 +72,6 @@ enum PaletteMatcher {
 
 extension PaletteItem {
     func withSection(_ section: PaletteSection) -> PaletteItem {
-        PaletteItem(id: id, section: section, title: title, subtitle: subtitle, symbol: symbol, action: action, courseFolder: courseFolder)
+        PaletteItem(id: id, section: section, title: title, subtitle: subtitle, symbol: symbol, action: action, courseFolder: courseFolder, snippet: snippet)
     }
 }

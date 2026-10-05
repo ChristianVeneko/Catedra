@@ -4,15 +4,16 @@ import AppKit
 /// Renders the menu bar label as an image so the urgency color survives (labels are otherwise tinted as templates).
 @MainActor
 enum MenuBarImage {
-    static func make(_ label: MenuBarLabel, syncing: Bool) -> NSImage {
+    static func make(_ label: MenuBarLabel, syncing: Bool, focus: (text: String, isRest: Bool)? = nil) -> NSImage {
         let color: Color = switch label.tone {
         case .normal: .black
         case .warning: .orange
         case .critical: .red
         }
         let content = HStack(spacing: 4) {
-            Image(systemName: syncing ? "arrow.triangle.2.circlepath" : "graduationcap.fill")
-            if let text = label.text { Text(text).monospacedDigit() }
+            Image(systemName: focus != nil ? (focus?.isRest == true ? "cup.and.saucer.fill" : "timer")
+                  : syncing ? "arrow.triangle.2.circlepath" : "graduationcap.fill")
+            if let focus { Text(focus.text).monospacedDigit() } else if let text = label.text { Text(text).monospacedDigit() }
         }
         .font(.system(size: 13, weight: .medium))
         .foregroundStyle(color)
@@ -34,8 +35,11 @@ struct MenuBarLabelView: View {
         let ws = container.workspace
         let next = UpcomingActivities.next(ws.snapshot.activities, stateOf: { ws.state(of: $0, now: now) }, now: now, limit: 1).first
         let label = MenuBarLabel.make(nextDue: next?.due, now: now, showsCountdown: container.settings.menuBarShowsCountdown)
-        Image(nsImage: MenuBarImage.make(label, syncing: container.sync.isRunning))
-            .accessibilityLabel(label.text.map { "Cátedra, próxima entrega en \($0)" } ?? "Cátedra")
+        let focus = container.focus
+        let focusLabel = focus.remainingText.map { (text: $0, isRest: focus.phase == .rest) }
+        Image(nsImage: MenuBarImage.make(label, syncing: container.sync.isRunning, focus: focusLabel))
+            .accessibilityLabel(focusLabel.map { "Cátedra, enfoque: quedan \($0.text)" }
+                                ?? label.text.map { "Cátedra, próxima entrega en \($0)" } ?? "Cátedra")
             .onAppear { registerOpener() }
     }
 
@@ -58,6 +62,7 @@ struct MenuBarPopover: View {
         .onAppear {
             let open = openWindow
             container.openWindowByID = { open(id: $0) }
+            container.review.reload(courses: container.workspace.snapshot.courses, root: container.workspace.root)
         }
     }
 
@@ -79,12 +84,62 @@ struct MenuBarPopover: View {
                 Label("No hay entregas pendientes con fecha.", systemImage: "checkmark.circle")
                     .foregroundStyle(.secondary).padding(.vertical, 8)
             }
+            reviewRow(now: now)
+            focusRow(upcoming: upcoming)
             runningAgents
             Divider()
             footer
         }
         .padding(14)
         .animation(.snappy, value: upcoming.map(\.id))
+    }
+
+    @ViewBuilder
+    private func reviewRow(now: Date) -> some View {
+        if container.review.hasAnyCards {
+            let count = container.review.todayCount(today: ReviewDay(date: now))
+            Button {
+                container.navigation.sidebar = .review
+                container.showMainWindow()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "rectangle.on.rectangle").foregroundStyle(.secondary).frame(width: 16)
+                    Text("Tarjetas para hoy")
+                    Spacer()
+                    Text("\(count)").font(.callout.weight(.semibold)).monospacedDigit()
+                        .foregroundStyle(count == 0 ? Color.secondary : Color.accentColor)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(ReviewSummary.todayText(count))
+        }
+    }
+
+    @ViewBuilder
+    private func focusRow(upcoming: [Activity]) -> some View {
+        let focus = container.focus
+        if focus.isRunning {
+            HStack(spacing: 8) {
+                Image(systemName: focus.phase == .rest ? "cup.and.saucer" : "timer").foregroundStyle(.secondary).frame(width: 16)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(focus.phase == .rest ? "Descanso" : "Enfoque").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    if let name = focus.activityName { Text(name).lineLimit(1) }
+                }
+                Spacer()
+                Text(focus.remainingText ?? "").monospacedDigit().font(.callout.weight(.semibold))
+                Button("Detener") { focus.stop() }.controlSize(.small)
+            }
+        } else if !upcoming.isEmpty {
+            Menu {
+                ForEach(upcoming) { activity in
+                    Button(activity.name) { focus.start(activityID: activity.id, name: activity.name) }
+                }
+            } label: {
+                Label("Iniciar enfoque en…", systemImage: "timer")
+            }
+            .controlSize(.small).fixedSize()
+        }
     }
 
     @ViewBuilder

@@ -44,6 +44,33 @@ enum RecipeCatalog {
             estudiante.
             """),
         Recipe(
+            id: "review-draft", title: "Revisar entrega", subtitle: "Compara tu entrega con el enunciado y las Normas UFT",
+            symbol: "checklist", applicability: .activity([.tarea]),
+            template: activityPreamble + """
+
+
+            Tarea: revisa la entrega del estudiante antes de que la envíe. Eres un revisor: solo evalúas y sugieres; \
+            no reescribas ni corrijas el trabajo del estudiante, no completes partes que falten y no resuelvas la \
+            actividad. No modifiques ningún archivo de `entrega/`.
+
+            1. Lee los archivos de `entrega/` (si está vacía, no inventes nada: escribe un resultado con `requirements` \
+            vacío y explícalo en `summary`).
+            2. Extrae los requisitos explícitos de `enunciado.md` y, solo si existe, de `rubrica.md`.
+            3. Carga el skill `normas-uft` y revisa el formato académico: portada, márgenes, tipografía, citas y \
+            referencias bibliográficas.
+            4. Para cada requisito indica si se cumple, se cumple parcialmente o falta, con evidencia concreta (qué \
+            parte o página de la entrega lo respalda o por qué falta). Cuando no sea cumple, añade una sugerencia \
+            breve de qué debería revisar el estudiante, sin redactar el contenido por él.
+
+            Escribe el resultado como JSON válido (sin texto adicional ni bloques de código) en \
+            `\(DraftReviewFile.relativePath)` con esta estructura:
+            {"generatedAt": "<fecha y hora ISO 8601>", "summary": "<resumen de dos o tres frases>", \
+            "requirements": [{"id": "r1", "requirement": "<requisito>", "status": "cumple" | "parcial" | "falta", \
+            "evidence": "<evidencia>", "suggestion": "<opcional>", "source": "enunciado" | "rubrica" | "normas-uft"}]}
+
+            \(preparationRule)
+            """),
+        Recipe(
             id: "work-plan", title: "Plan de trabajo", subtitle: "Pasos y material que debes leer",
             symbol: "list.bullet.clipboard", applicability: .activity([.tarea]),
             template: activityPreamble + """
@@ -128,6 +155,56 @@ enum RecipeCatalog {
             `apuntes/indice.md` que enlace cada nota, detecta duplicados o notas incompletas y sugiere qué falta \
             por estudiar. No muevas ni borres archivos existentes; solo crea el índice y los archivos nuevos en \
             `apuntes/`.
+            """),
+        Recipe(
+            id: "flashcards", title: "Generar tarjetas de repaso", subtitle: "Tarjetas pregunta y respuesta para repasar",
+            symbol: "rectangle.on.rectangle", applicability: .course,
+            template: coursePreamble + """
+
+
+            Tarea: crea tarjetas de repaso (pregunta y respuesta) a partir del material de `contenidos/`. Cada tarjeta \
+            cubre una sola idea: definiciones, relaciones, fórmulas, procedimientos y errores comunes. Las preguntas \
+            deben entenderse sin ver el material y las respuestas ser breves (una a tres frases). Genera solo con el \
+            material de la materia; no uses ni respondas preguntas de evaluaciones que estén en curso.
+
+            Escribe el resultado como JSON válido (sin texto adicional ni bloques de código) en \
+            `\(FlashcardFile.relativePath)` con esta estructura:
+            {"generatedAt": "<fecha y hora ISO 8601>", "cards": [{"id": "<identificador estable>", \
+            "question": "<pregunta>", "answer": "<respuesta>", "source": "<ruta relativa a la carpeta de la materia, \
+            por ejemplo contenidos/Unidad 1/tema.pdf>", "tags": ["<opcional>"]}]}
+
+            Reglas del archivo:
+            - Si `\(FlashcardFile.relativePath)` ya existe, léelo primero y combínalo: conserva todas las tarjetas \
+            existentes con su `id`, `question` y `answer` (solo puedes corregir un error evidente, nunca cambiar el \
+            `id`), no borres ninguna y agrega únicamente tarjetas nuevas sobre temas que aún no estén cubiertos. El \
+            progreso de repaso del estudiante se guarda por `id`, así que un `id` cambiado o eliminado pierde ese progreso.
+            - Cada `id` es único y estable: un texto en minúsculas con guiones derivado del tema (por ejemplo \
+            `unidad-2-ley-de-ohm-01`), nunca un número que dependa del orden.
+            - Mantén el archivo legible también para otros agentes: UTF-8, indentado con dos espacios, una tarjeta por \
+            bloque y sin comentarios.
+            - Al final, indica cuántas tarjetas había, cuántas agregaste y qué unidades tenían poco contenido.
+            """),
+        Recipe(
+            id: "quiz", title: "Cuestionario de práctica", subtitle: "Preguntas de opción múltiple y respuesta corta",
+            symbol: "questionmark.square.dashed", applicability: .course,
+            template: coursePreamble + """
+
+
+            Tarea: prepara un cuestionario de práctica de unas 10 a 15 preguntas originales, mezclando opción múltiple \
+            (3 o 4 opciones plausibles, una sola correcta) y respuesta corta, a partir del material de `contenidos/`. \
+            Cada pregunta debe incluir la respuesta correcta y una explicación breve. Es solo práctica: usa el \
+            material de la materia y no reproduzcas, resuelvas ni anticipes las preguntas de evaluaciones que estén en \
+            curso en `actividades/`.
+
+            Escribe el resultado como JSON válido (sin texto adicional ni bloques de código) en \
+            `\(QuizFile.relativePath)` con esta estructura:
+            {"generatedAt": "<fecha y hora ISO 8601>", "questions": [{"id": "q1", "type": "multiple-choice" | \
+            "short-answer", "question": "<pregunta>", "options": ["<solo en opción múltiple>"], \
+            "answer": "<en opción múltiple, el texto exacto de la opción correcta>", "explanation": "<explicación>", \
+            "source": "<ruta relativa a la carpeta de la materia>"}]}
+
+            Mantén el archivo legible también para otros agentes: UTF-8, indentado con dos espacios y sin comentarios. \
+            Si el archivo ya existe, reemplázalo por un cuestionario nuevo (no necesitas conservar las preguntas anteriores).
             """),
     ]
 

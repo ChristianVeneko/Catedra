@@ -260,6 +260,52 @@ background and refreshes it on workspace changes), Acciones (sync, sync sin arch
 Mostrar Hoy) and Recetas ("Ejecutar <receta> en <actividad seleccionada o que coincide>", opens the agent panel with the prompt
 prefilled, never runs it). With an empty query it shows the last 10 items (`PaletteRecents`, UserDefaults).
 
+## Content search
+The palette's "Contenido" section searches inside files, not only their names. `SQLiteSearchIndex` keeps an FTS5 index (system
+`sqlite3`, no dependencies; tokenizer `unicode61 remove_diacritics 2`, so accents and case are ignored) in
+`~/Library/Application Support/Catedra/search-index.sqlite`.
+- Indexed (`SearchIndexPolicy`, pure): `.pdf` (one row per page via `PDFDocument.string`), `.md` and `.txt` anywhere under a
+  course folder (`_texto.md`, `enunciado.md`, `foros/`, `apuntes/`, ...). `_sistema/`, `_imagenes/`, hidden folders/files, binaries,
+  PDFs over 150 MB and text over 5 MB are skipped. PDFs without a text layer (scans) are tracked but yield no rows.
+- Incremental: path, modification time and size are stored per file; `IndexDiff` (pure) yields added / changed / removed and
+  `ContentIndexingUseCase` re-extracts only those. A different workspace root clears the index. `SearchIndexModel` runs it off the
+  main actor after every workspace load (launch, sync completion, file watcher); overlapping runs are coalesced. Never runs under tests.
+- Query: `SearchQuerySanitizer` (pure) quotes each word and prefix-matches the last one (unless followed by a space), so raw FTS5
+  syntax can never break a query. Typing is debounced (250 ms); results show a snippet with the match in bold (`snippet()`, parsed
+  by `SnippetParser`), at most two per file.
+- Opening a result shows the file in the contents view; PDFs open at the matching page.
+- "Preguntar a un agente sobre estos resultados" (⌘↩ in the palette) opens the agent of the course holding most of the found
+  files (up to 5) and inserts them as `@` references in its composer; nothing is sent.
+
+## Pre-delivery review
+
+Task activities with files in `entrega/` get a "Revisión previa" section in the detail view. The "Revisar entrega" button runs the `review-draft` recipe with the selected provider: the agent compares `entrega/` with `enunciado.md` (and `rubrica.md` if it exists; rubrics are not synced from SAIA today) and checks the Normas UFT format. It only evaluates and suggests; it never edits the work.
+
+The result is written to `apuntes/.revision.json` (hidden, never uploaded, never overwritten by the sync) as `generatedAt`, `summary` and `requirements` (`id`, `requirement`, `status` = `cumple`/`parcial`/`falta`, `evidence`, `suggestion`, `source` = `enunciado`/`rubrica`/`normas-uft`). The parser is tolerant: unknown statuses show as unclassified and a malformed file shows an error state. The recipe is also available in the ⌘K palette.
+
+## Review with flashcards and quizzes
+
+The "Repaso" sidebar item lists one deck per course with its due and new counts. Two course-level recipes ("Generar tarjetas de repaso", `flashcards`, and "Cuestionario de práctica", `quiz`) make the agent write `apuntes/tarjetas.json` (`generatedAt`, `cards`: `id`, `question`, `answer`, `source`, `tags`) and `apuntes/cuestionario.json` (`questions`: `id`, `type` = `multiple-choice`/`short-answer`, `question`, `options`, `answer`, `explanation`, `source`). Both are plain, indented JSON so other agents can read them; the quiz is built from course material only, never from an open assessment. Parsers are tolerant (missing ids are derived from the question, answers may be an option text, a letter or a number).
+
+Scheduling is SM-2 with four grades (Otra vez / Difícil / Bien / Fácil), whole days in America/Caracas, ease bounded to 1.3-3.0 and intervals capped at 365 days. Progress lives in `~/Library/Application Support/Catedra/review-progress.json`, keyed by course and card id, together with the new-cards-per-day limit (default 20, per course). Re-running the recipe merges: cards removed from the file keep their progress (it returns if they reappear) and a card whose id changed but whose question is the same inherits the old progress. A session shows the question, space reveals the answer, keys 1-4 grade it, and a card graded "Otra vez" comes back once at the end of the session. The "Tarjetas para hoy" counter appears in the sidebar, in "Hoy" and in the menu bar popover; "Repasar tarjetas" is in the ⌘K palette. The quiz corrects multiple choice immediately, asks for self-evaluation on short answers, and ends with a score (not persisted).
+
+## Change detector for statements and dates
+After every successful sync, `ChangeTrackingModel` compares each activity's `enunciado.md` (normalized: status, attempts and date lines are dropped because they change on their own or are tracked as dates) and its `due`/`opens`/`cutoff` with the previous snapshot. Snapshots and unseen changes live in `~/Library/Application Support/Catedra/activity-changes.json`, never in the workspace. The first sync only takes the baseline (no alerts); activities that appear later also start from a baseline. A change shows the "Cambió el enunciado" / "Cambió la fecha" badge on the activity card and header, and a diff in the activity detail (`LineDiff`: removed lines red, added green, long unchanged runs collapsed) with "Marcar como visto". A local notification has its own toggle in Settings (same rule as the grade one: on only if the system permission is already granted until the user chooses).
+
+## Focus timer
+Pomodoro-style timer (default 25 min focus / 5 min break, configurable in Settings) started from the activity detail or from the menu bar popover. `FocusTimer` (pure) works with wall-clock dates, so sleep or a late tick cannot drift it; `FocusTimerModel` owns it in the App layer, so it survives the window closing. While running, the menu bar label shows the remaining time (`m:ss`). Finished or stopped periods of at least one minute are appended to `focus-log.json` (activity id, start, end, minutes). The detail shows the total time invested per activity and the calendar's week header compares actual focus time with the planned study hours.
+
+## Weekly summary
+Off by default (Settings > Resumen semanal; it runs an agent and consumes credits). When enabled, the first launch or wake on or after Monday 07:00 America/Caracas of each ISO week builds a local digest (`WeeklyDigestBuilder`: deliveries of the week, grades since the previous week, study blocks, cards due), asks the chosen provider through `RunAgentUseCase` (headless, no conversation history) to write the summary Markdown, stores it under `~/Library/Application Support/Catedra/weekly-summaries/<week>.md` and shows it in "Hoy" as a dismissible card plus a notification. "Generar resumen ahora" runs it manually. Without an agent, or if the run produces nothing, the plain local digest is shown instead (labeled "Resumen local"). Per-week state is in `weekly-summary.json`.
+
+## New-activity autopilot
+Off by default, globally (Settings > Piloto automático) and per course (Settings, or the course's context menu in the sidebar: use the general setting / on / off). It runs agents automatically and consumes credits. After a sync, activities not seen in the previous sync (the first sync only takes the baseline) that are assignments (the "Plan de trabajo" recipe never applies to quizzes or exams) and are not delivered or overdue are queued; `AutopilotRules` (pure) launches them one at a time with a daily cap (default 3) through the same registry/`RunAgentUseCase` path as a manual run, so the conversation is visible in the activity's agent history. A finished plan marks the activity "Plan listo". State: `autopilot.json`.
+
+## Desktop widget
+A WidgetKit extension (`CatedraWidget`, small and medium) shows the next deliveries with a live countdown, the cards due today and, in the medium size, the running focus session. To add it: right-click the desktop (or open Notification Center) > "Editar widgets" > "Cátedra". The app must have run at least once so the data file exists; until then, or when the data is more than 24 hours old, the widget says "Abre Cátedra para actualizar".
+
+The app writes `widget-snapshot.json` (generated date, the 3 soonest not-submitted upcoming activities, cards due today, focus session) into the app group container `28U4T9UK9R.com.cmendoza.catedra` whenever the activities, the review cards or the focus timer change, and then reloads the timelines (throttled to once per 30 s). The snapshot model and builder live in `Shared/WidgetSnapshot.swift`, compiled into both targets. Timelines have an entry every 30 minutes plus one at each due time. Taps open `catedra://activity?id=…`, `catedra://review` or `catedra://open` (URL scheme registered in `Config/Catedra-Info.plist`). The extension is sandboxed (required for widgets); the app is not, and both carry the team-prefixed app group entitlement, so no provisioning profile registration is needed on macOS.
+
 ## Background sync on launch
 After the workspace loads, `LaunchSyncPolicy` (pure) starts a silent sync when onboarding is completed, SAIA credentials and a
 Python interpreter exist, the mode is not "Desactivada" (Settings > Sincronización: completa / solo datos / desactivada) and the

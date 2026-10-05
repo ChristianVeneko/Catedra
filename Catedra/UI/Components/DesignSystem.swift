@@ -107,6 +107,7 @@ struct ActivityCard: View {
                         if !running.isEmpty { AgentActivityDot(providers: running) }
                         StatusBadge(state: state)
                     }
+                    ActivityFlagBadges(activityID: activity.id)
                     if let due = activity.due, state != .submitted { CountdownText(due: due, font: .system(.caption, design: .rounded)) }
                 }
             }

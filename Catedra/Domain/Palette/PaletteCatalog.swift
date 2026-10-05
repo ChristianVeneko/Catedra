@@ -31,6 +31,19 @@ enum PaletteCatalog {
         return items
     }
 
+    /// Rows of the "Contenido" section for full-text hits (at most two per file).
+    static func contentHitItems(_ hits: [ContentSearchHit], courses: [Course]) -> [PaletteItem] {
+        let limit = PaletteSection.fullText.limit
+        return ContentSearchHit.diversified(hits, perFile: 2, total: limit).map { hit in
+            let course = courses.first { $0.folderName == hit.courseFolder }?.name ?? hit.courseFolder
+            let title = hit.page.map { "\(hit.fileName) · p. \($0)" } ?? hit.fileName
+            return PaletteItem(
+                id: "hit:\(hit.id)", section: .fullText, title: title, subtitle: course, symbol: fileSymbol(hit.url),
+                action: .openContentHit(courseFolder: hit.courseFolder, path: hit.url.path, page: hit.page),
+                courseFolder: hit.courseFolder, snippet: hit.snippet)
+        }
+    }
+
     static func actions(provider: AgentProviderID) -> [PaletteItem] {
         var result = [
             PaletteItem(id: "action:today", section: .actions, title: "Mostrar Hoy", subtitle: "Agenda y próximas entregas",
@@ -41,6 +54,9 @@ enum PaletteCatalog {
             PaletteItem(id: "action:grades", section: .actions, title: "Abrir notas",
                         subtitle: "Puntos acumulados y simulador por materia", keywords: "calificaciones puntos aprobar simulador",
                         symbol: "chart.bar.doc.horizontal", action: .openGrades),
+            PaletteItem(id: "action:review", section: .actions, title: "Repasar tarjetas",
+                        subtitle: "Tarjetas de repaso y cuestionarios de práctica", keywords: "repaso flashcards estudiar cuestionario",
+                        symbol: "rectangle.on.rectangle", action: .openReview),
             PaletteItem(id: "action:study-block", section: .actions, title: "Nuevo bloque de estudio",
                         subtitle: "Planificar tiempo de estudio", keywords: "calendario estudiar planificar",
                         symbol: "book", action: .newStudyBlock),

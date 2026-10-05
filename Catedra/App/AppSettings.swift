@@ -36,6 +36,32 @@ final class SettingsModel {
             else { defaults.removeObject(forKey: Keys.gradeNotifications) }
         }
     }
+    /// Explicit choice for "enunciado o fecha cambiaron" notifications; same semantics as the grade one.
+    var changeNotificationsPreference: Bool? {
+        didSet {
+            if let value = changeNotificationsPreference { defaults.set(value, forKey: Keys.changeNotifications) }
+            else { defaults.removeObject(forKey: Keys.changeNotifications) }
+        }
+    }
+    /// Pomodoro durations.
+    var focusSettings: FocusSettings {
+        didSet {
+            defaults.set(focusSettings.focusMinutes, forKey: Keys.focusMinutes)
+            defaults.set(focusSettings.breakMinutes, forKey: Keys.breakMinutes)
+        }
+    }
+    /// Weekly summary run by an agent (consumes credits); off by default. `nil` provider follows `agentProvider`.
+    var weeklySummaryEnabled: Bool { didSet { defaults.set(weeklySummaryEnabled, forKey: Keys.weeklyEnabled) } }
+    var weeklySummaryProvider: AgentProviderID? {
+        didSet {
+            if let value = weeklySummaryProvider { defaults.set(value.rawValue, forKey: Keys.weeklyProvider) }
+            else { defaults.removeObject(forKey: Keys.weeklyProvider) }
+        }
+    }
+    /// Autopilot for new activities (runs agents automatically, consumes credits); off by default, overridable per course.
+    var autopilotEnabled: Bool { didSet { defaults.set(autopilotEnabled, forKey: Keys.autopilotEnabled) } }
+    var autopilotDailyCap: Int { didSet { defaults.set(autopilotDailyCap, forKey: Keys.autopilotCap) } }
+    private(set) var autopilotOverrides: [String: AutopilotOverride]
     private(set) var lastSuccessfulSync: Date?
     var onRemindersChanged: (@MainActor () -> Void)?
     private(set) var statuses: [AgentProviderID: BinaryStatus] = [:]
@@ -54,6 +80,10 @@ final class SettingsModel {
         static let workspace = "workspacePath", python = "pythonPath"
         static let launchMode = "launchSyncMode", launchInterval = "launchSyncMinutes", lastSuccess = "lastSuccessfulSync"
         static let gradeNotifications = "grades.notifications"
+        static let changeNotifications = "changes.notifications"
+        static let focusMinutes = "focus.minutes", breakMinutes = "focus.breakMinutes"
+        static let weeklyEnabled = "weekly.enabled", weeklyProvider = "weekly.provider"
+        static let autopilotEnabled = "autopilot.enabled", autopilotCap = "autopilot.dailyCap", autopilotCourses = "autopilot.courses"
         static let menuBar = "menuBarVisible", menuBarCountdown = "menuBarShowsCountdown"
         static let remindersEnabled = "reminders.enabled", reminder48 = "reminders.48h", reminder24 = "reminders.24h",
                    reminder3 = "reminders.3h", reminderCustom = "reminders.custom", reminderCustomHours = "reminders.customHours"
@@ -73,6 +103,15 @@ final class SettingsModel {
         self.launchSyncMinIntervalMinutes = max(0, defaults.object(forKey: Keys.launchInterval) as? Int ?? 30)
         self.lastSuccessfulSync = defaults.object(forKey: Keys.lastSuccess) as? Date
         self.gradeNotificationsPreference = defaults.object(forKey: Keys.gradeNotifications) as? Bool
+        self.changeNotificationsPreference = defaults.object(forKey: Keys.changeNotifications) as? Bool
+        self.focusSettings = FocusSettings(focusMinutes: defaults.object(forKey: Keys.focusMinutes) as? Int ?? 25,
+                                           breakMinutes: defaults.object(forKey: Keys.breakMinutes) as? Int ?? 5).clamped
+        self.weeklySummaryEnabled = defaults.object(forKey: Keys.weeklyEnabled) as? Bool ?? false
+        self.weeklySummaryProvider = defaults.string(forKey: Keys.weeklyProvider).flatMap(AgentProviderID.init(rawValue:))
+        self.autopilotEnabled = defaults.object(forKey: Keys.autopilotEnabled) as? Bool ?? false
+        self.autopilotDailyCap = max(1, defaults.object(forKey: Keys.autopilotCap) as? Int ?? AutopilotLimits.defaultDailyCap)
+        self.autopilotOverrides = (defaults.dictionary(forKey: Keys.autopilotCourses) as? [String: String] ?? [:])
+            .compactMapValues(AutopilotOverride.init(rawValue:))
         var reminders = ReminderPreferences()
         reminders.enabled = defaults.object(forKey: Keys.remindersEnabled) as? Bool ?? false
         reminders.at48h = defaults.object(forKey: Keys.reminder48) as? Bool ?? true
@@ -105,6 +144,20 @@ final class SettingsModel {
         self.username = creds?.username ?? ""
         self.hasStoredCredentials = creds != nil
     }
+
+    func autopilotOverride(forCourse folder: String) -> AutopilotOverride { autopilotOverrides[folder] ?? .inherit }
+
+    func setAutopilotOverride(_ value: AutopilotOverride, forCourse folder: String) {
+        if value == .inherit { autopilotOverrides[folder] = nil } else { autopilotOverrides[folder] = value }
+        defaults.set(autopilotOverrides.mapValues(\.rawValue), forKey: Keys.autopilotCourses)
+    }
+
+    func autopilotApplies(toCourse folder: String) -> Bool {
+        AutopilotRules.isEnabled(global: autopilotEnabled, override: autopilotOverrides[folder])
+    }
+
+    /// Provider the weekly summary runs with.
+    var summaryProvider: AgentProviderID { weeklySummaryProvider ?? agentProvider }
 
     func recordSuccessfulSync(at date: Date = .now) {
         lastSuccessfulSync = date

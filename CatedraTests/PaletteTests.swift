@@ -200,3 +200,34 @@ struct ContentIndexTests {
         #expect(entries.allSatisfy { $0.courseFolder == "01 - Calculo" && $0.courseName == "Calculo" })
     }
 }
+
+struct ReviewPaletteTests {
+    @Test func reviewActionIsInTheCatalog() {
+        let item = PaletteCatalog.actions(provider: .claude).first { $0.id == "action:review" }
+        #expect(item?.title == "Repasar tarjetas")
+        #expect(item?.action == .openReview)
+    }
+
+    @Test func reviewRecipesAreOfferedPerCourse() {
+        let course = Course(folderName: "08 - Teoria de Control II")!
+        let items = PaletteCatalog.recipeItems(query: "tarjetas", activities: [], courses: [course], contextActivity: nil,
+                                               contextCourse: course, stateOf: { _ in .pending }, now: Date())
+        #expect(items.map(\.action) == [.runRecipe(recipeID: "flashcards", scopeFolder: course.folderName, isCourse: true)])
+    }
+}
+
+struct ReviewRecipeTests {
+    @Test func flashcardAndQuizRecipesDescribeTheirFileAndStayPracticeOnly() {
+        let course = Course(folderName: "08 - Teoria de Control II")!
+        for id in ["flashcards", "quiz"] {
+            let recipe = RecipeCatalog.recipe(id: id)!
+            let text = RecipeCatalog.render(recipe, scope: .course(course), activities: [], formatDate: { _ in "x" })
+            #expect(!text.contains("{{"))
+            #expect(text.contains("legible también para otros agentes"))
+        }
+        let cards = RecipeCatalog.render(RecipeCatalog.recipe(id: "flashcards")!, scope: .course(course), activities: [], formatDate: { _ in "x" })
+        #expect(cards.contains(FlashcardFile.relativePath) && cards.contains("conserva todas las tarjetas"))
+        let quiz = RecipeCatalog.render(RecipeCatalog.recipe(id: "quiz")!, scope: .course(course), activities: [], formatDate: { _ in "x" })
+        #expect(quiz.contains(QuizFile.relativePath) && quiz.contains("no reproduzcas, resuelvas ni anticipes"))
+    }
+}

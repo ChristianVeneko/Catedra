@@ -23,6 +23,22 @@ targets:
           - "Resources/Sync/**"
       - path: Catedra/Resources/Sync/sync_moodle.py
         buildPhase: resources
+      - path: Shared
+    dependencies:
+      - target: CatedraWidget
+        embed: true
+    entitlements:
+      path: Config/Catedra.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - 28U4T9UK9R.com.cmendoza.catedra
+    info:
+      path: Config/Catedra-Info.plist
+      properties:
+        CFBundleURLTypes:
+          - CFBundleURLName: com.cmendoza.catedra
+            CFBundleURLSchemes:
+              - catedra
     settings:
       base:
         PRODUCT_NAME: Catedra
@@ -34,6 +50,34 @@ targets:
         INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription: "Cátedra necesita acceso a Calendario para exportar sus entregas, clases y bloques de estudio al calendario «Cátedra»."
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 0.1.0
+  CatedraWidget:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: CatedraWidget
+      - path: Shared
+    entitlements:
+      path: Config/CatedraWidget.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.application-groups:
+          - 28U4T9UK9R.com.cmendoza.catedra
+    info:
+      path: Config/CatedraWidget-Info.plist
+      properties:
+        CFBundleDisplayName: "Cátedra"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_NAME: CatedraWidget
+        PRODUCT_BUNDLE_IDENTIFIER: com.cmendoza.catedra.widget
+        GENERATE_INFOPLIST_FILE: YES
+        ENABLE_APP_SANDBOX: YES
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
         CURRENT_PROJECT_VERSION: 1
         MARKETING_VERSION: 0.1.0
   CatedraTests:

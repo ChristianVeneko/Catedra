@@ -34,6 +34,10 @@ struct SettingsView: View {
             }
             RemindersSection(settings: settings)
             GradeNotificationsSection(settings: settings)
+            ChangeNotificationsSection(settings: settings)
+            FocusSettingsSection(settings: settings)
+            WeeklySummarySection(settings: settings)
+            AutopilotSection(settings: settings)
             Section("Asistente de configuración") {
                 Button("Volver a ejecutar el asistente") { openWindow(id: "onboarding") }
                 Text("Guía paso a paso: carpeta de datos, credenciales del SAIA, agente y dependencias.")
@@ -278,5 +282,88 @@ private struct GradeNotificationsSection: View {
                 .font(.caption).foregroundStyle(.secondary)
         }
         .task { await container.reminders.refreshPermission() }
+    }
+}
+
+/// Own toggle for "cambió el enunciado o la fecha" notifications.
+private struct ChangeNotificationsSection: View {
+    @Environment(AppContainer.self) private var container
+    @Bindable var settings: SettingsModel
+
+    var body: some View {
+        let enabled = Binding(
+            get: { GradeChangeNotification.isEnabled(preference: settings.changeNotificationsPreference, permission: container.reminders.permission) },
+            set: { value in
+                settings.changeNotificationsPreference = value
+                if value { Task { _ = await UserNotificationScheduler().requestPermission(); await container.reminders.refreshPermission() } }
+            })
+        Section("Cambios en actividades") {
+            Toggle("Avisarme cuando cambie el enunciado o la fecha de una actividad", isOn: enabled)
+            Text("Cada sincronización se compara con la anterior; la primera solo guarda el punto de partida. Las copias del enunciado se guardan en Application Support, no en el espacio de trabajo.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+}
+
+private struct FocusSettingsSection: View {
+    @Bindable var settings: SettingsModel
+
+    var body: some View {
+        Section("Enfoque") {
+            Stepper("Sesión de enfoque: \(settings.focusSettings.focusMinutes) min",
+                    value: $settings.focusSettings.focusMinutes, in: FocusSettings.focusRange)
+            Stepper("Descanso: \(settings.focusSettings.breakMinutes) min",
+                    value: $settings.focusSettings.breakMinutes, in: FocusSettings.breakRange)
+            Text("El temporizador se inicia desde el detalle de una actividad o desde la barra de menús. Las sesiones se registran en Application Support.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+}
+
+private struct WeeklySummarySection: View {
+    @Environment(AppContainer.self) private var container
+    @Bindable var settings: SettingsModel
+
+    var body: some View {
+        Section("Resumen semanal") {
+            Toggle("Generar un resumen cada lunes", isOn: $settings.weeklySummaryEnabled)
+            Label("Ejecuta un agente y consume créditos de su proveedor. Se genera al abrir la app o al despertar el equipo a partir del lunes a las 07:00 (hora de Caracas), una vez por semana.",
+                  systemImage: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(.orange)
+            Picker("Proveedor", selection: Binding(get: { settings.weeklySummaryProvider }, set: { settings.weeklySummaryProvider = $0 })) {
+                Text("El del agente predeterminado").tag(AgentProviderID?.none)
+                ForEach(AgentProviderID.allCases) { Text($0.displayName).tag(AgentProviderID?.some($0)) }
+            }
+            HStack {
+                Button(container.weekly.isGenerating ? "Generando…" : "Generar resumen ahora") { container.weekly.generate() }
+                    .disabled(container.weekly.isGenerating)
+                Spacer()
+            }
+            if let message = container.weekly.message { Text(message).font(.caption).foregroundStyle(.secondary) }
+            Text("Si no hay un agente disponible se muestra el resumen local con los datos de la semana, sin consumir créditos.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+}
+
+private struct AutopilotSection: View {
+    @Environment(AppContainer.self) private var container
+    @Bindable var settings: SettingsModel
+
+    var body: some View {
+        Section("Piloto automático") {
+            Toggle("Preparar un plan de trabajo para cada tarea nueva", isOn: $settings.autopilotEnabled)
+            Label("Ejecuta agentes automáticamente en segundo plano y consume créditos de su proveedor.",
+                  systemImage: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(.orange)
+            Stepper("Máximo por día: \(settings.autopilotDailyCap)", value: $settings.autopilotDailyCap, in: 1...20)
+            Text("Solo actúa sobre tareas nuevas detectadas en una sincronización (la primera solo guarda el punto de partida), de a una a la vez, y nunca sobre cuestionarios o exámenes. El plan queda en «apuntes» de la actividad.")
+                .font(.caption).foregroundStyle(.secondary)
+            ForEach(container.workspace.snapshot.courses) { course in
+                Picker(course.name, selection: Binding(
+                    get: { settings.autopilotOverride(forCourse: course.folderName) },
+                    set: { settings.setAutopilotOverride($0, forCourse: course.folderName) })) {
+                    ForEach(AutopilotOverride.allCases, id: \.self) { Text($0.label).tag($0) }
+                }
+            }
+        }
     }
 }

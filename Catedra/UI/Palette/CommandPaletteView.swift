@@ -21,7 +21,7 @@ struct CommandPaletteView: View {
                         .onKeyPress(.upArrow) { palette.move(-1); return .handled }
                         .onKeyPress(.downArrow) { palette.move(1); return .handled }
                         .onKeyPress(.escape) { palette.dismiss(); return .handled }
-                    if container.contentIndex.isBuilding { ProgressView().controlSize(.small) }
+                    if container.contentIndex.isBuilding || palette.isSearchingContent { ProgressView().controlSize(.small) }
                 }
                 .padding(.horizontal, 16).padding(.vertical, 14)
                 Divider()
@@ -30,6 +30,13 @@ struct CommandPaletteView: View {
                 HStack(spacing: 14) {
                     hint("↑↓", "navegar"); hint("↩", "abrir"); hint("esc", "cerrar")
                     Spacer()
+                    if !palette.shownContentHits.isEmpty {
+                        Button { palette.askAgentAboutResults() } label: {
+                            Label("Preguntar a un agente sobre estos resultados", systemImage: "sparkles")
+                        }
+                        .buttonStyle(.link).keyboardShortcut(.return, modifiers: .command)
+                        .help("Adjunta los archivos encontrados al agente de la materia (⌘↩)")
+                    }
                 }
                 .font(.caption).foregroundStyle(.secondary)
                 .padding(.horizontal, 16).padding(.vertical, 8)
@@ -98,9 +105,19 @@ private struct PaletteRow: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: item.symbol).foregroundStyle(color).frame(width: 22)
-            Text(item.title).lineLimit(1)
-            if !item.subtitle.isEmpty {
-                Text(item.subtitle).font(.callout).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+            if let snippet = item.snippet {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 8) {
+                        Text(item.title).lineLimit(1)
+                        Text(item.subtitle).font(.callout).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                    }
+                    SnippetText(raw: snippet).font(.callout).foregroundStyle(.secondary).lineLimit(2)
+                }
+            } else {
+                Text(item.title).lineLimit(1)
+                if !item.subtitle.isEmpty {
+                    Text(item.subtitle).font(.callout).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                }
             }
             Spacer(minLength: 0)
             if selected { Image(systemName: "return").font(.caption).foregroundStyle(.secondary) }
@@ -110,5 +127,16 @@ private struct PaletteRow: View {
         .padding(.horizontal, 6)
         .contentShape(Rectangle())
         .animation(.easeOut(duration: 0.1), value: selected)
+    }
+}
+
+/// FTS5 snippet with the matched words in bold.
+private struct SnippetText: View {
+    let raw: String
+
+    var body: some View {
+        SnippetParser.segments(from: raw).reduce(Text("")) { partial, segment in
+            partial + (segment.isMatch ? Text(segment.text).bold().foregroundStyle(.primary) : Text(segment.text))
+        }
     }
 }

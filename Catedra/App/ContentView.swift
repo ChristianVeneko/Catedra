@@ -55,13 +55,19 @@ struct ContentView: View {
             let open = openWindow
             container.openWindowByID = { open(id: $0) }
         }
+        .onOpenURL { container.handle(url: $0) }
         .safeAreaInset(edge: .top, spacing: 0) { setupBanner }
         .task {
             if container.onboarding.consumeAutoPresent() { openWindow(id: "onboarding") }
             await container.onboarding.refreshWarningIfNeeded()
             container.planner.load()
+            container.loadTrackingState()
             container.grades.load()
+            container.review.load()
             await container.workspace.reload()
+            container.widget?.start()
+            container.autopilot.pump()
+            container.weekly.checkIfDue()
             await container.reminders.refreshPermission()
             container.startLaunchSyncIfNeeded()
             await container.agents.load()
@@ -116,6 +122,7 @@ struct ContentView: View {
             case .today: DashboardView()
             case .calendar: CalendarDayListView()
             case .grades: GradesListView()
+            case .review: ReviewDecksView()
             case .all: ActivityListView(title: "Todas las actividades", activities: ws.allActivitiesSorted)
             case .activities(let id):
                 if let course = course(id) { ActivityListView(title: course.name, activities: ws.activities(in: course)) }
@@ -151,13 +158,15 @@ struct ContentView: View {
             CalendarView()
         } else if nav.sidebar == .grades {
             GradeDetailView()
+        } else if nav.sidebar == .review {
+            ReviewDetailView()
         } else if case .agent(let id)? = nav.sidebar, let course = course(id) {
             AgentPanelView(scope: .course(course), color: CoursePalette.color(for: course)).id(course.id)
         } else if let url = nav.selectedNodeURL {
             if (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true {
                 ContentUnavailableView("Carpeta", systemImage: "folder", description: Text(url.lastPathComponent))
             } else {
-                FilePreviewView(url: url).id(url)
+                FilePreviewView(url: url, initialPage: nav.initialPage(for: url)).id("\(url.path)#\(nav.initialPage(for: url) ?? 0)")
             }
         } else {
             ContentUnavailableView("Seleccione un elemento", systemImage: "doc.text.magnifyingglass")

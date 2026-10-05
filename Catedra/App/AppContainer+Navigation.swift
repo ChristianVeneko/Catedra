@@ -20,6 +20,19 @@ extension AppContainer {
         reveal(activity: activity)
     }
 
+    /// Handles a `catedra://` URL (desktop widget): opens the activity, the review screen or just the app.
+    func handle(url: URL) {
+        switch WidgetLink.parse(url) {
+        case .activity(let id): reveal(activityID: id)
+        case .review:
+            workspace.searchText = ""
+            navigation.sidebar = .review
+            showMainWindow()
+        case .open: showMainWindow()
+        case nil: break
+        }
+    }
+
     func reveal(activity: Activity) {
         workspace.searchText = ""
         navigation.show(activity: activity)
@@ -41,6 +54,14 @@ extension AppContainer {
                                    disabledByEnvironment: disabled)
     }
 
+    /// Opens the agent of the dominant course with the files behind `hits` attached to its composer.
+    func askAgent(about hits: [ContentSearchHit]) {
+        guard let target = ContentSearchHit.attachmentTarget(for: hits, maxFiles: 5),
+              let course = workspace.snapshot.courses.first(where: { $0.folderName == target.courseFolder }) else { return }
+        navigation.show(attachments: target.files, in: course)
+        showMainWindow()
+    }
+
     func openSettingsWindow() {
         NSApp.activate(ignoringOtherApps: true)
         NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
@@ -60,6 +81,9 @@ extension AppContainer {
                 contextActivity: workspace.activity(id: navigation.selectedActivityID), contextCourse: currentCourse,
                 stateOf: { self.workspace.state(of: $0, now: now) }, now: now)
         }
+        palette.contentSearch = { [weak self] query in await self?.searchIndex.search(query) ?? [] }
+        palette.coursesProvider = { [weak self] in self?.workspace.snapshot.courses ?? [] }
+        palette.attachHits = { [weak self] hits in self?.askAgent(about: hits) }
         palette.onPresent = { [weak self] in self?.contentIndex.refreshIfNeeded() }
         palette.perform = { [weak self] action in self?.perform(action) }
     }
@@ -75,6 +99,8 @@ extension AppContainer {
             navigation.sidebar = .agent(folder)
         case .openContent(let folder, let path):
             navigation.show(content: URL(fileURLWithPath: path), courseFolder: folder)
+        case .openContentHit(let folder, let path, let page):
+            navigation.show(content: URL(fileURLWithPath: path), courseFolder: folder, page: page)
         case .sync(let includeFiles):
             sync.start(includeFiles: includeFiles)
         case .openSettings:
@@ -87,6 +113,8 @@ extension AppContainer {
             navigation.sidebar = .calendar
         case .openGrades:
             navigation.sidebar = .grades
+        case .openReview:
+            navigation.sidebar = .review
         case .newStudyBlock:
             navigation.sidebar = .calendar
             planner.beginNew(at: planner.nextHour())

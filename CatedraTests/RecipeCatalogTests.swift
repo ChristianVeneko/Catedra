@@ -13,7 +13,7 @@ struct RecipeCatalogTests {
     func ids(_ kind: ActivityKind) -> [String] { RecipeCatalog.recipes(for: scope(kind)).map(\.id) }
 
     @Test func tareaRecipes() {
-        #expect(ids(.tarea) == ["draft-docx", "work-plan"])
+        #expect(ids(.tarea) == ["draft-docx", "review-draft", "work-plan"])
     }
 
     @Test func examAndQuizRecipesArePreparationOnly() {
@@ -28,7 +28,7 @@ struct RecipeCatalogTests {
 
     @Test func courseRecipes() {
         let ids = RecipeCatalog.recipes(for: .course(course)).map(\.id)
-        #expect(ids == ["course-summary", "study-plan", "organize-notes"])
+        #expect(ids == ["course-summary", "study-plan", "organize-notes", "flashcards", "quiz"])
     }
 
     @Test func noExamRecipeAsksToAnswerALiveExam() {

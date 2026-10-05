@@ -43,6 +43,8 @@ struct ContentTreeView: View {
 /// Preview of a file selected in the contents browser: Markdown, PDF or Quick Look.
 struct FilePreviewView: View {
     let url: URL
+    /// 1-based page a PDF opens at (full-text results).
+    var initialPage: Int?
 
     var body: some View {
         Group {
@@ -54,7 +56,7 @@ struct FilePreviewView: View {
                         .padding(24).frame(maxWidth: 820, alignment: .leading).frame(maxWidth: .infinity)
                 }
             case "pdf":
-                PDFPreview(url: url)
+                PDFPreview(url: url, page: initialPage)
             default:
                 QuickLookPreview(url: url)
             }
@@ -73,6 +75,8 @@ struct FilePreviewView: View {
 
 struct PDFPreview: NSViewRepresentable {
     let url: URL
+    /// 1-based page to scroll to when the document is first shown.
+    var page: Int?
     func makeNSView(context: Context) -> PDFView {
         let view = PDFView()
         view.autoScales = true
@@ -80,7 +84,11 @@ struct PDFPreview: NSViewRepresentable {
         return view
     }
     func updateNSView(_ view: PDFView, context: Context) {
-        if view.document?.documentURL != url { view.document = PDFDocument(url: url) }
+        guard view.document?.documentURL != url else { return }
+        view.document = PDFDocument(url: url)
+        if let page, let document = view.document, let target = document.page(at: min(max(page, 1), document.pageCount) - 1) {
+            DispatchQueue.main.async { view.go(to: target) }
+        }
     }
 }
 

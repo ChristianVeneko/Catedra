@@ -18,10 +18,17 @@ final class AppContainer {
     let clock = MinuteClock()
     let reminders: ReminderModel
     let contentIndex: ContentIndexModel
+    let searchIndex: SearchIndexModel
     let palette = PaletteModel()
     let planner = CalendarModel()
     let grades = GradesModel()
+    let review = ReviewModel()
     let notificationRouter = NotificationRouter()
+    let changes: ChangeTrackingModel
+    let focus: FocusTimerModel
+    let weekly: WeeklySummaryModel
+    let autopilot: AutopilotModel
+    var widget: WidgetSyncModel?
     /// Opens a window scene by id; registered by views that have access to `openWindow`.
     var openWindowByID: (@MainActor (String) -> Void)?
 
@@ -74,11 +81,33 @@ final class AppContainer {
         self.reminders = reminders
         let contentIndex = ContentIndexModel(workspace: workspace)
         self.contentIndex = contentIndex
-        workspace.onReloaded = { [weak reminders, weak contentIndex] in
+        // Full-text indexing writes under Application Support; never touch it under tests.
+        let searchIndex = SearchIndexModel(workspace: workspace,
+                                           store: env["XCTestConfigurationFilePath"] == nil ? try? SQLiteSearchIndex() : nil)
+        self.searchIndex = searchIndex
+        let review = self.review
+        workspace.onReloaded = { [weak reminders, weak contentIndex, weak searchIndex, weak review, weak workspace] in
+            if let workspace { review?.reload(courses: workspace.snapshot.courses, root: workspace.root) }
             reminders?.scheduleSoon()
             contentIndex?.workspaceChanged()
+            searchIndex?.workspaceChanged()
         }
         settings.onRemindersChanged = { [weak reminders] in reminders?.scheduleSoon() }
+        let underTest = env["XCTestConfigurationFilePath"] != nil
+        func store<V: Codable & Sendable>(_ name: String) -> any StateStoring<V> {
+            underTest ? MemoryStateStore<V>() : JSONStateStore<V>(name: name)
+        }
+        let notifier = UserNotificationAdapter()
+        self.changes = ChangeTrackingModel(store: store("activity-changes.json"), notifier: notifier, notificationsEnabled: {
+            let permission = await UserNotificationScheduler().permission()
+            return GradeChangeNotification.isEnabled(preference: settings.changeNotificationsPreference, permission: permission)
+        })
+        self.focus = FocusTimerModel(store: store("focus-log.json"), notifier: notifier, settings: { settings.focusSettings })
+        self.weekly = WeeklySummaryModel(store: store("weekly-summary.json"), runner: CLIAgentRunner(tracker: processRegistry),
+                                         directory: WeeklySummaryModel.defaultDirectory, notifier: notifier)
+        self.autopilot = AutopilotModel(store: store("autopilot.json"))
+        wireTracking()
+        if !underTest { wireWidget() }
         wirePalette()
         if env["XCTestConfigurationFilePath"] == nil {
             notificationRouter.onOpenActivity = { [weak self] id in self?.reveal(activityID: id) }

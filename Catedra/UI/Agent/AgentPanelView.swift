@@ -49,7 +49,9 @@ struct AgentPanelView: View {
             composer.history = PromptHistory(entries: registry.promptHistory(in: scope.id))
             composer.setAvailable(availableCommands)
             consumePendingRecipe()
+            consumePendingAttachments()
         }
+        .onChange(of: container.navigation.pendingAttachments) { _, _ in consumePendingAttachments() }
         .onChange(of: container.navigation.pendingRecipe) { _, _ in consumePendingRecipe() }
         .task(id: PrepareKey(scopeID: scope.id, provider: activeProvider)) {
             await container.commands.prepare(folder: scopeFolder, provider: activeProvider)
@@ -148,6 +150,14 @@ struct AgentPanelView: View {
 
     private var scopeFolder: URL { scope.url(in: container.settings.workspaceURL) }
     private var availableCommands: [SlashCommand] { container.commands.commands(in: scopeFolder, provider: activeProvider) }
+
+    /// Files sent here from the palette's full-text results: inserted as references, never sent.
+    private func consumePendingAttachments() {
+        let nav = container.navigation
+        guard let pending = nav.pendingAttachments, pending.scopeID == scope.id else { return }
+        nav.pendingAttachments = nil
+        composer.insertReferences(pending.files.map { ScopeRelativePath.attachment(for: $0, in: scopeFolder) })
+    }
 
     private func send(_ text: String) {
         let continuing = (run?.sessionId != nil) ? run?.id : nil

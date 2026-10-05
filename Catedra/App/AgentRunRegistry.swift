@@ -20,6 +20,8 @@ final class AgentRunRegistry {
     var onCommandsCatalog: (@MainActor ([SlashCommand], Bool, AgentProviderID) -> Void)?
     /// Names of a provider's custom commands for a folder (OpenCode runs a leading `/name` through `--command`).
     var knownCommands: (@MainActor (AgentProviderID, URL) -> Set<String>)?
+    /// Called when a run reaches its final state (the autopilot tracks its own runs through it).
+    var onRunFinished: (@MainActor (AgentRun) -> Void)?
 
     init(runner: AgentRunning, store: AgentRunStoring, notifier: AgentNotifying, terminal: TerminalOpening, settings: SettingsModel) {
         self.useCase = RunAgentUseCase(runner: runner, store: store)
@@ -170,6 +172,7 @@ final class AgentRunRegistry {
     private func finished(_ run: AgentRun) async {
         replace(run)
         tasks[run.id] = nil
+        onRunFinished?(run)
         guard run.status != .cancelled else { return }
         let body = run.status == .succeeded ? "Terminó correctamente." : "Terminó con errores."
         await notifier.notifyFinished(title: "Agente terminó: \(run.scope.title)", body: body)

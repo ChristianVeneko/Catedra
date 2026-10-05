@@ -26,6 +26,8 @@ final class SyncModel {
     private var task: Task<Void, Never>?
     private var bannerTask: Task<Void, Never>?
     private(set) var launchSyncAttempted = false
+    /// Called after every successful sync, once the workspace has been reloaded.
+    var onSyncSucceeded: (@MainActor (ActivityDiff) async -> Void)?
 
     init(useCase: SyncUseCase, workspace: WorkspaceModel, notifier: AgentNotifying? = nil,
          notificationPermission: @escaping @Sendable () async -> NotificationPermission = { .notDetermined }) {
@@ -100,6 +102,7 @@ final class SyncModel {
         if case .success(let diff) = outcome {
             workspace.settings.recordSuccessfulSync()
             await notifyGradeChanges(diff.gradeChanges)
+            await onSyncSucceeded?(diff)
             guard isBackground else { return }
             let text = SyncSummary.text(for: diff)
             show(.summary(text), autoDismiss: true)

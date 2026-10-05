@@ -46,6 +46,8 @@ struct ActivityDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 header(activity, course: course, color: color)
+                if let change = container.changes.change(for: activity.id) { ActivityChangeSection(change: change) }
+                FocusSection(activity: activity)
                 if activity.hasFeedback {
                     VStack(alignment: .leading, spacing: 10) {
                         SectionHeader(title: "Retroalimentación del docente")
@@ -60,6 +62,7 @@ struct ActivityDetailView: View {
                             .padding(16).frame(maxWidth: .infinity, alignment: .leading).card()
                     }
                 }
+                if activity.kind == .tarea { DraftReviewSection(model: model, color: color) }
                 dropZone(color: color)
                 fileSection("Material", systemImage: "books.vertical", urls: model.files.material)
                 fileSection("Entrega", systemImage: "paperplane", urls: model.files.entrega)
@@ -76,6 +79,7 @@ struct ActivityDetailView: View {
             if case .success(let urls) = result { Task { await model.importFiles(urls) } }
         }
         .task(id: container.workspace.snapshot.lastSync) { model.reload() }
+        .onChange(of: container.agents.isRunning(scopeID: activity.folder)) { _, _ in model.reload() }
     }
 
     private var allFiles: [URL] {
@@ -91,6 +95,7 @@ struct ActivityDetailView: View {
                 Image(systemName: activity.kind.symbolName).foregroundStyle(color)
                 Text("\(activity.courseName) · \(activity.kind.displayName)").foregroundStyle(.secondary)
                 Spacer()
+                ActivityFlagBadges(activityID: activity.id)
                 StatusBadge(state: state)
             }
             Text(activity.name).font(.largeTitle.weight(.bold)).fixedSize(horizontal: false, vertical: true)

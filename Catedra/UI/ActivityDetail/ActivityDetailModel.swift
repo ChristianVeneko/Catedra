@@ -6,6 +6,7 @@ final class ActivityDetailModel {
     let activity: Activity
     private(set) var files = ActivityFiles()
     private(set) var statement: String?
+    private(set) var review: DraftReviewLoadState = .missing
     var importTarget: ImportTarget
     var message: String?
     var isError = false
@@ -26,12 +27,16 @@ final class ActivityDetailModel {
         reload()
     }
 
+    /// The pre-delivery review needs something in `entrega/` to look at.
+    var canReview: Bool { !files.entrega.isEmpty }
+
     var folderURL: URL { root.appendingPathComponent(activity.folder, isDirectory: true) }
 
     func reload() {
         files = reader.files(root: root, activity: activity)
         let statementURL = folderURL.appendingPathComponent("enunciado.md")
         statement = try? String(contentsOf: statementURL, encoding: .utf8)
+        review = DraftReviewFile.load(in: folderURL)
     }
 
     func importFiles(_ urls: [URL]) async {

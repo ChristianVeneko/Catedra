@@ -5,6 +5,7 @@ enum SidebarItem: Hashable {
     case today
     case calendar
     case grades
+    case review
     case all
     case activities(String)
     case contents(String)
@@ -15,14 +16,14 @@ enum SidebarItem: Hashable {
     var courseID: String? {
         switch self {
         case .activities(let id), .contents(let id), .forums(let id), .agent(let id): id
-        case .today, .calendar, .grades, .all: nil
+        case .today, .calendar, .grades, .review, .all: nil
         }
     }
 
     var showsActivities: Bool {
         switch self {
         case .today, .all, .activities: true
-        case .calendar, .grades, .contents, .forums, .agent: false
+        case .calendar, .grades, .review, .contents, .forums, .agent: false
         }
     }
 }
@@ -35,6 +36,18 @@ struct PendingRecipe: Equatable {
     let scopeID: String
 }
 
+/// Files that the agent panel of `scopeID` should insert as references into its composer.
+struct PendingAttachments: Equatable {
+    let scopeID: String
+    let files: [URL]
+}
+
+/// File opened from a full-text result; `page` applies to PDFs only.
+struct ContentTarget: Equatable {
+    let url: URL
+    let page: Int?
+}
+
 @Observable @MainActor
 final class NavigationModel {
     var activityTab: ActivityDetailTab = .detail
@@ -42,6 +55,11 @@ final class NavigationModel {
     var selectedActivityID: Activity.ID?
     var selectedNodeURL: URL?
     var pendingRecipe: PendingRecipe?
+    var pendingAttachments: PendingAttachments?
+    private(set) var contentTarget: ContentTarget?
+
+    /// Page to open `url` at, when it is the file the last full-text result pointed to.
+    func initialPage(for url: URL) -> Int? { contentTarget?.url == url ? contentTarget?.page : nil }
 
     func show(activity: Activity) {
         sidebar = .activities(activity.courseFolderName)
@@ -49,9 +67,17 @@ final class NavigationModel {
         activityTab = .detail
     }
 
-    func show(content url: URL, courseFolder: String) {
+    func show(content url: URL, courseFolder: String, page: Int? = nil) {
         sidebar = .contents(courseFolder)
+        contentTarget = page.map { ContentTarget(url: url, page: $0) }
         selectedNodeURL = url
+    }
+
+    /// Opens the course agent so its composer receives `files` as references.
+    func show(attachments files: [URL], in course: Course) {
+        let scope = AgentScope.course(course)
+        pendingAttachments = PendingAttachments(scopeID: scope.id, files: files)
+        sidebar = .agent(course.folderName)
     }
 
     /// Opens the agent panel of an activity or course so it can prefill `recipe`.
