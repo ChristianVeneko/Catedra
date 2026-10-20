@@ -37,6 +37,10 @@ final class TeleprompterModel {
     var fontSize: Double {
         didSet { defaults.set(fontSize, forKey: Keys.fontSize) }
     }
+    /// Keep the island out of screenshots and screen recordings that honor `NSWindow.sharingType`.
+    var hiddenFromCapture: Bool {
+        didSet { defaults.set(hiddenFromCapture, forKey: Keys.hiddenFromCapture) }
+    }
 
     private let transcriber: SpeechTranscribing
     private weak var presenter: TeleprompterPresenting?
@@ -50,6 +54,7 @@ final class TeleprompterModel {
         static let mode = "teleprompter.mode"
         static let pace = "teleprompter.wordsPerMinute"
         static let fontSize = "teleprompter.fontSize"
+        static let hiddenFromCapture = "teleprompter.hiddenFromCapture"
     }
 
     init(transcriber: SpeechTranscribing, presenter: TeleprompterPresenting?, defaults: UserDefaults = .standard) {
@@ -61,6 +66,7 @@ final class TeleprompterModel {
         wordsPerMinute = pace > 0 ? pace : 140
         let size = defaults.double(forKey: Keys.fontSize)
         fontSize = size > 0 ? size : 20
+        hiddenFromCapture = defaults.object(forKey: Keys.hiddenFromCapture) as? Bool ?? true
     }
 
     func attach(presenter: TeleprompterPresenting) { self.presenter = presenter }

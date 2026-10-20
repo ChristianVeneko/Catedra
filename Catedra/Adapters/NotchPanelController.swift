@@ -11,10 +11,6 @@ final class NotchPanelController: TeleprompterPresenting {
     private var panel: NSPanel?
     private weak var model: TeleprompterModel?
     private let hotKeys = GlobalHotKeys()
-    /// Hides the island from screen recordings and screenshots (`sharingType = .none`).
-    var hiddenFromCapture = true {
-        didSet { panel?.sharingType = hiddenFromCapture ? .none : .readOnly }
-    }
 
     func attach(model: TeleprompterModel) { self.model = model }
 
@@ -22,6 +18,7 @@ final class NotchPanelController: TeleprompterPresenting {
         guard let model, let screen = Self.targetScreen() else { return }
         let panel = panel ?? makePanel()
         self.panel = panel
+        panel.sharingType = model.hiddenFromCapture ? .none : .readOnly
         let notchHeight = screen.safeAreaInsets.top
         // A fresh root view replays the opening animation.
         let island = TeleprompterIslandView(model: model, notchHeight: notchHeight) { [weak self] height in
@@ -67,7 +64,6 @@ final class NotchPanelController: TeleprompterPresenting {
         panel.isMovable = false
         panel.hidesOnDeactivate = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
-        panel.sharingType = hiddenFromCapture ? .none : .readOnly
         return panel
     }
 

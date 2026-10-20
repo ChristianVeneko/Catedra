@@ -36,6 +36,7 @@ struct SettingsView: View {
             GradeNotificationsSection(settings: settings)
             ChangeNotificationsSection(settings: settings)
             FocusSettingsSection(settings: settings)
+            TeleprompterSettingsSection(model: container.teleprompter)
             WeeklySummarySection(settings: settings)
             AutopilotSection(settings: settings)
             Section("Asistente de configuración") {
@@ -315,6 +316,28 @@ private struct FocusSettingsSection: View {
             Stepper("Descanso: \(settings.focusSettings.breakMinutes) min",
                     value: $settings.focusSettings.breakMinutes, in: FocusSettings.breakRange)
             Text("El temporizador se inicia desde el detalle de una actividad o desde la barra de menús. Las sesiones se registran en Application Support.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+}
+
+private struct TeleprompterSettingsSection: View {
+    @Bindable var model: TeleprompterModel
+
+    var body: some View {
+        Section("Guiones (teleprompter)") {
+            Picker("Avance", selection: $model.preferredMode) {
+                Text("Siguiendo mi voz").tag(TeleprompterModel.Mode.voice)
+                Text("Ritmo fijo").tag(TeleprompterModel.Mode.pace)
+            }
+            LabeledContent("Ritmo fijo: \(Int(model.wordsPerMinute)) palabras/min") {
+                Slider(value: $model.wordsPerMinute, in: 80...220, step: 5)
+            }
+            LabeledContent("Tamaño de letra: \(Int(model.fontSize)) pt") {
+                Slider(value: $model.fontSize, in: 14...40, step: 1)
+            }
+            Toggle("Ocultar el guion de capturas y grabaciones de pantalla", isOn: $model.hiddenFromCapture)
+            Text("Abra un guion con /guion en el chat del agente o con la receta «Crear guion». La voz se reconoce en este Mac. Atajos: ⌃⌥Espacio pausa, ⌃⌥← ⌃⌥→ frase, ⌃⌥↑ ⌃⌥↓ sección, ⌃⌥Esc cerrar. Si OBS captura la pantalla completa y el guion aparece en el video, capture la ventana de la presentación.")
                 .font(.caption).foregroundStyle(.secondary)
         }
     }

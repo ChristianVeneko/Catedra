@@ -151,9 +151,12 @@ struct TeleprompterModelTests {
         first.preferredMode = .pace
         first.wordsPerMinute = 160
         first.fontSize = 26
+        #expect(first.hiddenFromCapture)
+        first.hiddenFromCapture = false
         let second = TeleprompterModel(transcriber: FakeTranscriber(), presenter: nil, defaults: defaults)
         #expect(second.preferredMode == .pace)
         #expect(second.wordsPerMinute == 160)
         #expect(second.fontSize == 26)
+        #expect(!second.hiddenFromCapture)
     }
 }

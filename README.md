@@ -314,7 +314,8 @@ that are shown but never expected in speech. `ScriptParser` (pure) splits it int
   the last heard words against the script ahead, tolerating misrecognitions, and only moves forward: one matching word
   advances to the next word, two stay within 12 words, three or more may jump anywhere ahead; improvising holds the
   position. Without microphone or speech permission (or with "ritmo fijo" chosen) it advances at a fixed words-per-minute
-  pace instead. Mode, pace and font size persist in `UserDefaults` (`teleprompter.*`).
+  pace instead. Mode, pace, font size and "hide from capture" are in Settings > Guiones and persist in `UserDefaults`
+  (`teleprompter.*`).
 - **Shortcuts** (global, Carbon hotkeys, registered only while the island is visible; no Accessibility permission):
   ⌃⌥Space pause/resume, ⌃⌥← / ⌃⌥→ previous/next sentence, ⌃⌥↑ / ⌃⌥↓ previous/next section, ⌃⌥= / ⌃⌥- font size,
   ⌃⌥Esc close.
