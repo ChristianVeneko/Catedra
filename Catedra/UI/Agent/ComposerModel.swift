@@ -17,7 +17,7 @@ final class ComposerModel {
     var selectedIndex = 0
     var isDropTargeted = false
     var isFocused = false
-    /// Height requested by the text view (already clamped to 1–8 lines).
+    /// Height requested by the text view (already clamped to 1–10 lines).
     var contentHeight: CGFloat = 24
     var history = PromptHistory(entries: [])
     /// Provider whose commands the popup lists (titles of its sections).
@@ -116,8 +116,9 @@ final class ComposerModel {
 
     // MARK: - History
 
+    /// Only from an empty composer or while already walking the history, so ↑ never replaces a typed draft.
     func historyPrevious() -> Bool {
-        guard let entry = history.previous(current: text) else { return false }
+        guard isBlank || history.isNavigating, let entry = history.previous(current: text) else { return false }
         setText(entry)
         return true
     }

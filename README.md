@@ -198,7 +198,9 @@ the icons follow the run's provider. Each provider is an `AgentProvider` (argume
 
 ### Composer
 The composer is an AppKit `NSTextView` wrapped for SwiftUI (`ComposerTextView`), because SwiftUI cannot intercept
-Enter / Tab / Esc / arrows reliably on macOS. It grows from 1 to 8 lines and then scrolls.
+Enter / Tab / Esc / arrows reliably on macOS. It grows from 1 to 10 lines and then scrolls,
+keeping the caret visible. **↑ / ↓** always move the caret between lines; they recall sent prompts only from an empty
+composer (or while already walking the history), so they never replace a typed draft.
 - **Enter** sends, **Shift+Enter** (or Option+Enter) inserts a newline, **⌘↩** also sends. **Esc** closes the suggestions
   popup, then drops focus. While an agent runs you can keep typing a draft; sending is disabled and the button becomes Stop.
 - **↑ / ↓** with the caret on the first / last line (popup closed) cycle through the prompts previously sent in that

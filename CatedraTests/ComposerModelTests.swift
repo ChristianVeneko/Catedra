@@ -69,17 +69,33 @@ struct ComposerModelTests {
         #expect(model.selectedIndex == 0)
     }
 
-    @Test func historyRecallsAndRestoresDraft() {
+    @Test func historyRecallsFromEmptyComposerAndRestoresIt() {
         let model = makeModel()
         model.history = PromptHistory(entries: ["uno", "dos"])
-        type(model, "borrador")
         #expect(model.historyPrevious())
         #expect(model.text == "dos")
         #expect(model.historyPrevious())
         #expect(model.text == "uno")
         #expect(model.historyNext())
         #expect(model.historyNext())
-        #expect(model.text == "borrador")
+        #expect(model.text == "")
+    }
+
+    @Test func historyDoesNotReplaceTypedDraft() {
+        let model = makeModel()
+        model.history = PromptHistory(entries: ["uno", "dos"])
+        type(model, "borrador\nsegunda línea")
+        #expect(!model.historyPrevious())
+        #expect(model.text == "borrador\nsegunda línea")
+    }
+
+    @Test func editingARecalledPromptStopsHistoryNavigation() {
+        let model = makeModel()
+        model.history = PromptHistory(entries: ["uno", "dos"])
+        #expect(model.historyPrevious())
+        type(model, "dos editado")
+        #expect(!model.historyPrevious())
+        #expect(model.text == "dos editado")
     }
 
     @Test func insertingReferencesAppendsAtCaret() {

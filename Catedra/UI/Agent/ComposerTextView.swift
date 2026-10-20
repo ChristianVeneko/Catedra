@@ -16,7 +16,7 @@ struct ComposerHandler {
     var paste: (NSPasteboard) -> Bool = { _ in false }
 }
 
-/// Multi-line plain-text editor (1–8 lines, then scrolls) that owns Enter / Shift+Enter / Tab / Esc / arrow handling,
+/// Multi-line plain-text editor (1–10 lines, then scrolls) that owns Enter / Shift+Enter / Tab / Esc / arrow handling,
 /// which SwiftUI's `TextEditor` cannot intercept reliably on macOS.
 struct ComposerTextView: NSViewRepresentable {
     let model: ComposerModel
@@ -27,7 +27,7 @@ struct ComposerTextView: NSViewRepresentable {
 
     static let font = NSFont.systemFont(ofSize: 14)
     static let verticalInset: CGFloat = 4
-    static let maxLines = 8
+    static let maxLines = 10
 
     func makeCoordinator() -> Coordinator { Coordinator(model: model) }
 
@@ -62,7 +62,7 @@ struct ComposerTextView: NSViewRepresentable {
         textView.string = model.text
         textView.setSelectedRange(model.selection)
 
-        let scroll = NSScrollView()
+        let scroll = ComposerScrollView()
         scroll.drawsBackground = false
         scroll.hasVerticalScroller = true
         scroll.autohidesScrollers = true
@@ -111,7 +111,7 @@ struct ComposerTextView: NSViewRepresentable {
         func textDidChange(_ notification: Notification) {
             guard !isApplying, let textView else { return }
             model.userEdited(text: textView.string, selection: textView.selectedRange())
-            reportHeight()
+            reportHeight(deferred: false)
         }
 
         func textViewDidChangeSelection(_ notification: Notification) {
@@ -119,13 +119,30 @@ struct ComposerTextView: NSViewRepresentable {
             model.selectionMoved(textView.selectedRange())
         }
 
-        func reportHeight() {
+        /// Typing reports synchronously so the frame grows in the same pass as the new line; calls made during a
+        /// SwiftUI update or AppKit layout must defer the state change.
+        func reportHeight(deferred: Bool = true) {
             guard let textView else { return }
             let height = textView.clampedContentHeight()
             guard abs(height - lastHeight) > 0.5 else { return }
             lastHeight = height
-            DispatchQueue.main.async { [model] in model.contentHeight = height }
+            if deferred {
+                DispatchQueue.main.async { [model] in model.contentHeight = height }
+            } else {
+                model.contentHeight = height
+            }
         }
+    }
+}
+
+/// Keeps the caret in view when SwiftUI resizes the editor: the text view scrolls to the caret before the new
+/// height arrives, which would otherwise leave the first lines hidden or the caret below the visible area.
+final class ComposerScrollView: NSScrollView {
+    override func setFrameSize(_ newSize: NSSize) {
+        let changed = abs(newSize.height - frame.height) > 0.5
+        super.setFrameSize(newSize)
+        guard changed, let textView = documentView as? NSTextView else { return }
+        textView.scrollRangeToVisible(textView.selectedRange())
     }
 }
 
