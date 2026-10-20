@@ -39,18 +39,23 @@ struct AgentTranscriptView: View {
         case .user(_, let text):
             HStack {
                 Spacer(minLength: 60)
+                CopyMessageButton(text: text).padding(.top, 8)
                 Text(text)
                     .textSelection(.enabled)
                     .padding(12)
                     .background(color.opacity(0.14), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .lineLimit(12)
+                    .contextMenu { CopyMessageButton.menuItem(text: text) }
             }
         case .assistant(_, let text):
             HStack(alignment: .top, spacing: 10) {
                 AgentProviderMark(provider: provider, size: 14).padding(.top, 3)
                 MarkdownView(source: text)
+                Spacer(minLength: 0)
+                CopyMessageButton(text: text)
             }
             .padding(14).frame(maxWidth: .infinity, alignment: .leading).card()
+            .contextMenu { CopyMessageButton.menuItem(text: text) }
         case .thinking(_, let text):
             DisclosureGroup {
                 Text(text).font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
@@ -68,6 +73,41 @@ struct AgentTranscriptView: View {
                 .padding(12).frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
+    }
+}
+
+/// Copies the whole message (its Markdown source) in one go; per-block text selection cannot span bullets or tables.
+private struct CopyMessageButton: View {
+    let text: String
+    @State private var copied = false
+
+    static func copy(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+
+    static func menuItem(text: String) -> some View {
+        Button("Copiar mensaje", systemImage: "doc.on.doc") { copy(text) }
+    }
+
+    var body: some View {
+        Button {
+            Self.copy(text)
+            copied = true
+            Task {
+                try? await Task.sleep(for: .seconds(1.5))
+                copied = false
+            }
+        } label: {
+            Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                .font(.caption)
+                .foregroundStyle(copied ? AnyShapeStyle(.green) : AnyShapeStyle(.secondary))
+                .frame(width: 20, height: 20)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(copied ? "Copiado" : "Copiar mensaje completo")
+        .accessibilityLabel("Copiar mensaje completo")
     }
 }
 
