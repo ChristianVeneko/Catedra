@@ -43,6 +43,7 @@ enum RecipeCatalog {
 
     Formato del archivo (Markdown):
     ---
+    tipo: guion
     titulo: <título corto>
     duracion: <por ejemplo 3m>
     idioma: es-VE

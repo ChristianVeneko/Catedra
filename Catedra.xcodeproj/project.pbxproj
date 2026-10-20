@@ -146,6 +146,7 @@
 		75518E643711F08428704C6E /* ActivityDetailModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F39CE39575C8A9768C800D21 /* ActivityDetailModel.swift */; };
 		775CA4632F0DD952110E8469 /* DependencyCheckTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A48532CBDD1CE890D6879571 /* DependencyCheckTests.swift */; };
 		78B3109B0D7CB743408A6365 /* PhaseFourDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EEE725F7F529087D2E44E72 /* PhaseFourDataTests.swift */; };
+		795813718B39CF02EA1D870B /* ScriptFileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2264863050EAAE677F0E686B /* ScriptFileTests.swift */; };
 		795A95BE2AE0605904715607 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6C9B37A12DD38F423B37533 /* TestSupport.swift */; };
 		79AE9DCD5BD1B1575F46DA5D /* MarkdownParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C86584BC5706581984F701D /* MarkdownParser.swift */; };
 		7A2C06145AFC68B582E9D129 /* WeeklySummaryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CFCB854A5B0CB5B5F56AA90 /* WeeklySummaryModel.swift */; };
@@ -272,6 +273,7 @@
 		E9E170538738EF8B714DD274 /* ResourceMonitorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C8A2B4CD9D8CCD1ACA1E758 /* ResourceMonitorModel.swift */; };
 		EB2D184EAF0F8E88CD151A30 /* CalendarExportUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4CA9BE6D822FD7D5FBEFC25 /* CalendarExportUseCase.swift */; };
 		EB77361B7FAFE5ABB6CC9BD0 /* CoursePalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E98E0585FC7E5B77030C404 /* CoursePalette.swift */; };
+		EC5EDEF6D2371E3A43C43085 /* ScriptFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EF17CA6A68C4323323AC9B9 /* ScriptFile.swift */; };
 		ECF7BC07A1D3487B2DBC6C1B /* DraftReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 487DCE88F0C943C53475D464 /* DraftReviewTests.swift */; };
 		EDD62FC12C605870C3E8C12B /* ImportTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA9B1D95F10A789D8A2949E0 /* ImportTarget.swift */; };
 		EDE4E8E266D66757B7E57C5B /* OpenCodeEventParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E550E8C2F1E94B4B07D8B216 /* OpenCodeEventParserTests.swift */; };
@@ -379,6 +381,7 @@
 		205361C92986D2E2F327135D /* ScriptAlignerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptAlignerTests.swift; sourceTree = "<group>"; };
 		216CB449EF1B891050B19AFF /* AgentBinaryProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBinaryProbe.swift; sourceTree = "<group>"; };
 		219D47EBAE0EFED33BC925D8 /* AgentProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentProviderTests.swift; sourceTree = "<group>"; };
+		2264863050EAAE677F0E686B /* ScriptFileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptFileTests.swift; sourceTree = "<group>"; };
 		234824FBC95E1A9D9F1A9DA9 /* SearchPorts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchPorts.swift; sourceTree = "<group>"; };
 		236C07571706530DFB6C2A10 /* CalendarWeekView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarWeekView.swift; sourceTree = "<group>"; };
 		244B112C24F19D61F385A557 /* SyncBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncBannerView.swift; sourceTree = "<group>"; };
@@ -528,6 +531,7 @@
 		9E98E0585FC7E5B77030C404 /* CoursePalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoursePalette.swift; sourceTree = "<group>"; };
 		9EBB11D8670F7BB781900E85 /* Flashcard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Flashcard.swift; sourceTree = "<group>"; };
 		9EDA92FEE104012E509F40A6 /* WeeklyDigestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyDigestTests.swift; sourceTree = "<group>"; };
+		9EF17CA6A68C4323323AC9B9 /* ScriptFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptFile.swift; sourceTree = "<group>"; };
 		9F72C10A250AFD8BC1B17B48 /* SpacedRepetition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpacedRepetition.swift; sourceTree = "<group>"; };
 		9FDAA7C5D16652F2C36F4F37 /* PaletteModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteModel.swift; sourceTree = "<group>"; };
 		A1F72626DA2F46665EBB6D90 /* MarkdownExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownExportTests.swift; sourceTree = "<group>"; };
@@ -930,6 +934,7 @@
 				8D2FC3AF026EA98A48C12D9A /* RunAgentUseCaseTests.swift */,
 				D9FECF4A68683F553C3D6AC1 /* ScopeRelativePathTests.swift */,
 				205361C92986D2E2F327135D /* ScriptAlignerTests.swift */,
+				2264863050EAAE677F0E686B /* ScriptFileTests.swift */,
 				F7EA3AE55A72A36D785C63BE /* ScriptLinkTests.swift */,
 				FBDFA1F24EBFFEC521DDC21B /* ScriptLocatorTests.swift */,
 				443B71AF20EE7A5CE1FDEFF5 /* ScriptParserTests.swift */,
@@ -1275,6 +1280,7 @@
 			children = (
 				AB9AC8EA2DD89FCD9178DC67 /* Script.swift */,
 				2C143F99862F3E424F405EAF /* ScriptAligner.swift */,
+				9EF17CA6A68C4323323AC9B9 /* ScriptFile.swift */,
 				9915F33D5527A915EE27493F /* ScriptLink.swift */,
 				2FA1D31857BAE71C8931E0DF /* ScriptParser.swift */,
 			);
@@ -1477,6 +1483,7 @@
 				9DAF9E50BB050C921670899E /* SQLiteSearchIndexTests.swift in Sources */,
 				63A84CECE0BA275BD52E9E3F /* ScopeRelativePathTests.swift in Sources */,
 				AA23B1FBB29F52F8ADB369BD /* ScriptAlignerTests.swift in Sources */,
+				795813718B39CF02EA1D870B /* ScriptFileTests.swift in Sources */,
 				A997C2489B6D28E3A9B500E8 /* ScriptLinkTests.swift in Sources */,
 				0FA9C2A0889B89DF401B94BA /* ScriptLocatorTests.swift in Sources */,
 				A532CE55D512E4EA2C3F7A87 /* ScriptParserTests.swift in Sources */,
@@ -1674,6 +1681,7 @@
 				02D13926670495F3EE92FFB0 /* ScopeRelativePath.swift in Sources */,
 				D7D38592069F9901ACFF623D /* Script.swift in Sources */,
 				85B83AC4258BDB2865DEFF49 /* ScriptAligner.swift in Sources */,
+				EC5EDEF6D2371E3A43C43085 /* ScriptFile.swift in Sources */,
 				CBC635485FA15FD7BF83C24C /* ScriptLink.swift in Sources */,
 				4CA5CE420F80FAA44192F59A /* ScriptLocator.swift in Sources */,
 				4E197E511FC100257E36AF6D /* ScriptParser.swift in Sources */,

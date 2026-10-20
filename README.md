@@ -319,6 +319,10 @@ that are shown but never expected in speech. `ScriptParser` (pure) splits it int
 - **Shortcuts** (global, Carbon hotkeys, registered only while the island is visible; no Accessibility permission):
   ⌃⌥Space pause/resume, ⌃⌥← / ⌃⌥→ previous/next sentence, ⌃⌥↑ / ⌃⌥↓ previous/next section, ⌃⌥= / ⌃⌥- font size,
   ⌃⌥Esc close.
+- **Script files** stay plain Markdown (previews, Obsidian and editors keep working). `ScriptFile` marks a `.md` as a
+  script when it is inside a `guiones/` folder or its frontmatter says `tipo: guion` (the recipe writes both). File
+  rows (generated files, activity files, history) then show a black "Guion" badge and icon plus a "Mostrar en la isla
+  del notch" button and context-menu item.
 - **Starting it.** `/guion [nombre]` in an agent chat opens the newest (or matching, `ScriptLocator`) script of that
   scope; `/guion cerrar` closes it. The "Crear guion" recipe (course and assignment scopes) has the agent write the script
   and then run `open -g "catedra://guion/activar?archivo=<percent-encoded path>"` (`-g` keeps the presentation in front).

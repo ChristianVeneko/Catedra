@@ -178,17 +178,30 @@ struct ActivityDetailView: View {
 }
 
 struct FileRow: View {
+    @Environment(AppContainer.self) private var container
     let url: URL
     let preview: () -> Void
+    @State private var isScript = false
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(nsImage: NSWorkspace.shared.icon(forFile: url.path)).resizable().frame(width: 28, height: 28)
+            icon
             VStack(alignment: .leading, spacing: 1) {
                 Text(url.lastPathComponent).lineLimit(1).truncationMode(.middle)
-                Text(sizeText).font(.caption).foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    if isScript {
+                        Text("Guion").font(.caption2.weight(.semibold)).foregroundStyle(.white)
+                            .padding(.horizontal, 6).padding(.vertical, 1)
+                            .background(Color.black, in: Capsule())
+                    }
+                    Text(sizeText).font(.caption).foregroundStyle(.secondary)
+                }
             }
             Spacer()
+            if isScript {
+                Button(action: showInNotch) { Image(systemName: "text.word.spacing") }
+                    .help("Mostrar en la isla del notch")
+            }
             Button(action: preview) { Image(systemName: "eye") }.help("Vista previa")
             Button { NSWorkspace.shared.open(url) } label: { Image(systemName: "arrow.up.forward.app") }.help("Abrir")
             Button { NSWorkspace.shared.activateFileViewerSelecting([url]) } label: { Image(systemName: "folder") }.help("Mostrar en Finder")
@@ -197,11 +210,29 @@ struct FileRow: View {
         .padding(.horizontal, 12).padding(.vertical, 8)
         .contentShape(Rectangle())
         .onTapGesture(count: 2) { NSWorkspace.shared.open(url) }
+        .task(id: url) { isScript = await Task.detached { [url] in ScriptFile.isScript(url) }.value }
         .contextMenu {
+            if isScript { Button("Mostrar en la isla del notch", systemImage: "text.word.spacing", action: showInNotch) }
             Button("Vista previa", action: preview)
             Button("Abrir") { NSWorkspace.shared.open(url) }
             Button("Mostrar en Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
         }
+    }
+
+    @ViewBuilder
+    private var icon: some View {
+        if isScript {
+            Image(systemName: "text.word.spacing")
+                .font(.system(size: 13, weight: .bold)).foregroundStyle(.white)
+                .frame(width: 28, height: 28)
+                .background(Color.black, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+        } else {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: url.path)).resizable().frame(width: 28, height: 28)
+        }
+    }
+
+    private func showInNotch() {
+        Task { await container.teleprompter.open(url: url) }
     }
 
     private var sizeText: String {

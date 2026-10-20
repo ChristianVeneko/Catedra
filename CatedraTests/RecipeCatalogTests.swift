@@ -36,6 +36,7 @@ struct RecipeCatalogTests {
             let recipe = RecipeCatalog.recipes(for: scope).first { $0.id.hasPrefix("script-") }!
             let text = RecipeCatalog.render(recipe, scope: scope, activities: [], formatDate: { _ in "x" })
             #expect(text.contains("apuntes/guiones/"))
+            #expect(text.contains("tipo: guion"))
             #expect(text.contains("open -g \"catedra://guion/activar?archivo="))
             #expect(text.contains("/guion"))
         }
