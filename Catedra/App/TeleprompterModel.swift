@@ -177,6 +177,11 @@ final class TeleprompterModel {
 
     private func resumeTracking() {
         guard state == .running else { return }
+        stopTracking()
+        if let script, position >= script.words.count {
+            state = .finished
+            return
+        }
         switch activeMode {
         case .voice: startListening()
         case .pace: startTicker()
@@ -199,7 +204,19 @@ final class TeleprompterModel {
                 guard let self, !Task.isCancelled else { return }
                 self.receive(transcript: transcript)
             }
+            guard !Task.isCancelled else { return }
+            self?.recognitionEnded()
         }
+    }
+
+    /// The recognizer gave up (repeated errors or silence) while the script was still running: keep going at a fixed pace.
+    private func recognitionEnded() {
+        isListening = false
+        listener = nil
+        guard state == .running else { return }
+        notice = "El reconocimiento de voz se detuvo: el guion sigue a ritmo fijo."
+        activeMode = .pace
+        startTicker()
     }
 
     private func startTicker() {

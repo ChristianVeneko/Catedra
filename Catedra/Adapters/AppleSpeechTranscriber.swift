@@ -9,10 +9,12 @@ import Speech
 final class AppleSpeechTranscriber: SpeechTranscribing {
     enum TranscriberError: LocalizedError {
         case unavailable(String)
+        case noMicrophone
 
         var errorDescription: String? {
             switch self {
             case .unavailable(let language): "no hay reconocimiento de voz para «\(language)» en este Mac"
+            case .noMicrophone: "no hay ningún micrófono conectado"
             }
         }
     }
@@ -26,12 +28,12 @@ final class AppleSpeechTranscriber: SpeechTranscribing {
     private var continuation: AsyncStream<String>.Continuation?
     private var failures = 0
     private var running = false
+    /// Bumped for every request and on stop, so callbacks of an older request are ignored.
+    private var generation = 0
 
     func requestAuthorization() async -> SpeechAuthorization {
         guard SFSpeechRecognizer() != nil else { return .unavailable }
-        let speech = await withCheckedContinuation { (done: CheckedContinuation<SFSpeechRecognizerAuthorizationStatus, Never>) in
-            SFSpeechRecognizer.requestAuthorization { done.resume(returning: $0) }
-        }
+        let speech = await Self.speechAuthorization()
         guard speech == .authorized else { return .denied }
         return await AVCaptureDevice.requestAccess(for: .audio) ? .authorized : .denied
     }
@@ -47,10 +49,9 @@ final class AppleSpeechTranscriber: SpeechTranscribing {
         self.recognizer = recognizer
 
         let input = engine.inputNode
-        let box = box
-        input.installTap(onBus: 0, bufferSize: 1024, format: input.outputFormat(forBus: 0)) { buffer, _ in
-            box.append(buffer)
-        }
+        let format = input.outputFormat(forBus: 0)
+        guard format.sampleRate > 0, format.channelCount > 0 else { throw TranscriberError.noMicrophone }
+        input.installTap(onBus: 0, bufferSize: 1024, format: format, block: Self.tapBlock(for: box))
         engine.prepare()
         do {
             try engine.start()
@@ -70,6 +71,7 @@ final class AppleSpeechTranscriber: SpeechTranscribing {
     func stop() {
         guard running else { return }
         running = false
+        generation += 1
         task?.cancel()
         task = nil
         box.replace(with: nil)?.endAudio()
@@ -99,17 +101,14 @@ final class AppleSpeechTranscriber: SpeechTranscribing {
         request.shouldReportPartialResults = true
         request.addsPunctuation = false
         if recognizer.supportsOnDeviceRecognition { request.requiresOnDeviceRecognition = true }
+        generation += 1
+        task?.cancel()
         box.replace(with: request)?.endAudio()
-        task = recognizer.recognitionTask(with: request) { [weak self] result, error in
-            let text = result?.bestTranscription.formattedString
-            let isFinal = result?.isFinal ?? false
-            let failed = error != nil
-            Task { @MainActor in self?.handle(text: text, isFinal: isFinal, failed: failed) }
-        }
+        task = recognizer.recognitionTask(with: request, resultHandler: Self.resultHandler(for: self, generation: generation))
     }
 
-    private func handle(text: String?, isFinal: Bool, failed: Bool) {
-        guard running else { return }
+    fileprivate func handle(text: String?, isFinal: Bool, failed: Bool, generation: Int) {
+        guard running, generation == self.generation else { return }
         if let text, !text.isEmpty {
             failures = 0
             continuation?.yield(text)
@@ -121,10 +120,34 @@ final class AppleSpeechTranscriber: SpeechTranscribing {
         }
         beginRequest()
     }
+
+    // MARK: - Callbacks
+    // Built in nonisolated functions on purpose: closures written inside this @MainActor class would inherit main-actor
+    // isolation, and Swift 6 traps when AVFAudio / Speech call them from their own threads.
+
+    nonisolated static func tapBlock(for box: RequestBox) -> AVAudioNodeTapBlock {
+        { buffer, _ in box.append(buffer) }
+    }
+
+    nonisolated static func resultHandler(for owner: AppleSpeechTranscriber, generation: Int)
+        -> @Sendable (SFSpeechRecognitionResult?, Error?) -> Void {
+        { result, error in
+            let text = result?.bestTranscription.formattedString
+            let isFinal = result?.isFinal ?? false
+            let failed = error != nil
+            Task { @MainActor in owner.handle(text: text, isFinal: isFinal, failed: failed, generation: generation) }
+        }
+    }
+
+    nonisolated private static func speechAuthorization() async -> SFSpeechRecognizerAuthorizationStatus {
+        await withCheckedContinuation { done in
+            SFSpeechRecognizer.requestAuthorization { done.resume(returning: $0) }
+        }
+    }
 }
 
 /// The audio tap runs on a real-time thread; it reaches the current request only through this lock.
-private final class RequestBox: @unchecked Sendable {
+final class RequestBox: @unchecked Sendable {
     private let lock = NSLock()
     private var request: SFSpeechAudioBufferRecognitionRequest?
 

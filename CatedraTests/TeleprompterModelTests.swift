@@ -27,6 +27,8 @@ private final class FakeTranscriber: SpeechTranscribing {
     }
 
     func say(_ text: String) { continuation?.yield(text) }
+    /// The recognizer giving up on its own (not through `stop()`).
+    func giveUp() { continuation?.finish(); continuation = nil }
 }
 
 @MainActor
@@ -126,6 +128,27 @@ struct TeleprompterModelTests {
         model.togglePause()
         #expect(model.state == .running)
         #expect(transcriber.startedLanguages.count == 2)
+    }
+
+    @Test func recognizerGivingUpFallsBackToFixedPace() async {
+        let (model, transcriber, _) = makeModel()
+        await model.start(ScriptParser.parse(source))
+        transcriber.giveUp()
+        for _ in 0..<50 where model.activeMode == .voice { await Task.yield() }
+        #expect(model.activeMode == .pace)
+        #expect(model.state == .running)
+        #expect(model.notice?.contains("ritmo fijo") == true)
+    }
+
+    @Test func resumingAtTheEndFinishes() async {
+        let (model, transcriber, _) = makeModel()
+        await model.start(ScriptParser.parse(source))
+        model.togglePause()
+        model.nextSection(); model.nextSentence(); model.nextSentence()
+        #expect(model.state == .paused)
+        model.togglePause()
+        #expect(model.state == .finished)
+        #expect(transcriber.startedLanguages.count == 1)
     }
 
     @Test func closeHidesAndStops() async {
