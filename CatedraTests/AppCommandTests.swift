@@ -12,6 +12,13 @@ struct AppCommandTests {
         #expect(AppCommand.parse("/archivos") == .files)
     }
 
+    @Test func parsesScriptCommand() {
+        #expect(AppCommand.parse("/guion") == .script(nil))
+        #expect(AppCommand.parse("/guion defensa final") == .script("defensa final"))
+        #expect(AppCommand.parse("/guion cerrar") == .closeScript)
+        #expect(AppCommand.requiresArgument("guion"))
+    }
+
     @Test func parsesModelArgument() {
         #expect(AppCommand.parse("/model sonnet") == .setModel("sonnet"))
         #expect(AppCommand.parse("  /model  OPUS  ") == .setModel("opus"))

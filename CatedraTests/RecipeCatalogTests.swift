@@ -13,7 +13,7 @@ struct RecipeCatalogTests {
     func ids(_ kind: ActivityKind) -> [String] { RecipeCatalog.recipes(for: scope(kind)).map(\.id) }
 
     @Test func tareaRecipes() {
-        #expect(ids(.tarea) == ["draft-docx", "review-draft", "work-plan"])
+        #expect(ids(.tarea) == ["draft-docx", "review-draft", "work-plan", "script-activity"])
     }
 
     @Test func examAndQuizRecipesArePreparationOnly() {
@@ -28,7 +28,17 @@ struct RecipeCatalogTests {
 
     @Test func courseRecipes() {
         let ids = RecipeCatalog.recipes(for: .course(course)).map(\.id)
-        #expect(ids == ["course-summary", "study-plan", "organize-notes", "flashcards", "quiz"])
+        #expect(ids == ["course-summary", "study-plan", "organize-notes", "flashcards", "quiz", "script-course"])
+    }
+
+    @Test func scriptRecipesSaveUnderNotesAndActivateTheTeleprompter() {
+        for scope in [scope(.tarea), AgentScope.course(course)] {
+            let recipe = RecipeCatalog.recipes(for: scope).first { $0.id.hasPrefix("script-") }!
+            let text = RecipeCatalog.render(recipe, scope: scope, activities: [], formatDate: { _ in "x" })
+            #expect(text.contains("apuntes/guiones/"))
+            #expect(text.contains("open -g \"catedra://guion/activar?archivo="))
+            #expect(text.contains("/guion"))
+        }
     }
 
     @Test func noExamRecipeAsksToAnswerALiveExam() {

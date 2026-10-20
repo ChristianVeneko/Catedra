@@ -22,6 +22,7 @@ extension AppContainer {
 
     /// Handles a `catedra://` URL (desktop widget): opens the activity, the review screen or just the app.
     func handle(url: URL) {
+        if let link = ScriptLink.parse(url, workspace: settings.workspaceURL) { return handle(scriptLink: link) }
         switch WidgetLink.parse(url) {
         case .activity(let id): reveal(activityID: id)
         case .review:
@@ -30,6 +31,15 @@ extension AppContainer {
             showMainWindow()
         case .open: showMainWindow()
         case nil: break
+        }
+    }
+
+    /// Script links come from the agent while another app is being presented, so they never bring the main window up.
+    private func handle(scriptLink: ScriptLink) {
+        switch scriptLink {
+        case .start(let file): Task { await teleprompter.open(url: file) }
+        case .stop: teleprompter.close()
+        case .invalid(let message): teleprompter.report(message)
         }
     }
 

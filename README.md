@@ -230,7 +230,7 @@ accept (inserts `/name `), Esc dismisses, click accepts.
 - Cátedra commands are handled by the app and never sent to Claude; they override same-named CLI builtins:
   `/resume` (picker of past runs of this scope, optionally all scopes; continues with `--resume <session_id>`),
   `/new` (alias `/clear`), `/model <model|predeterminado>`, `/permisos <solo-lectura|aceptar|auto|sin-restricciones>` (options depend on the provider),
-  `/recetas`, `/terminal`, `/archivos`.
+  `/recetas`, `/terminal`, `/archivos`, `/guion [nombre|cerrar]` (see Teleprompter).
 
 ### Testing notes
 - Real-CLI smoke tests (temp dir, never the workspace) are opt-in: `CATEDRA_LIVE_CLAUDE=1` (model `haiku`),
@@ -298,6 +298,30 @@ Scheduling is SM-2 with four grades (Otra vez / Difícil / Bien / Fácil), whole
 
 ## Change detector for statements and dates
 After every successful sync, `ChangeTrackingModel` compares each activity's `enunciado.md` (normalized: status, attempts and date lines are dropped because they change on their own or are tracked as dates) and its `due`/`opens`/`cutoff` with the previous snapshot. Snapshots and unseen changes live in `~/Library/Application Support/Catedra/activity-changes.json`, never in the workspace. The first sync only takes the baseline (no alerts); activities that appear later also start from a baseline. A change shows the "Cambió el enunciado" / "Cambió la fecha" badge on the activity card and header, and a diff in the activity detail (`LineDiff`: removed lines red, added green, long unchanged runs collapsed) with "Marcar como visto". A local notification has its own toggle in Settings (same rule as the grade one: on only if the system permission is already granted until the user chooses).
+
+## Teleprompter (scripts in the notch)
+A script is a Markdown file in `apuntes/guiones/` of a course or activity: optional frontmatter (`titulo`, `duracion`
+such as `3m`, `idioma` such as `es-VE`), `##` sections, spoken text and `[cue]` stage directions (`[pausa]`, `[clic]`)
+that are shown but never expected in speech. `ScriptParser` (pure) splits it into sections, sentences and words.
+- **Island.** `NotchPanelController` shows a borderless, non-activating `NSPanel` at the top center of the screen with a
+  notch (or the main screen), above the menu bar, on every Space and beside full-screen apps; it never takes focus from
+  the presentation and its height follows the content so the rest of the screen stays clickable. `TeleprompterIslandView`
+  shows the section, a progress bar, the current sentence with spoken words lit up and the next sentence dimmed; hover
+  for controls. The panel uses `sharingType = .none`, so screenshots and recordings that honor it do not show it
+  (verified with `screencapture`; check your OBS version, or capture the presented window instead of the display).
+- **Following the voice.** `AppleSpeechTranscriber` (microphone + `SFSpeechRecognizer`, on device when supported; the
+  script language falls back to `es-US`, `es-MX` or `es-ES`) streams partial transcripts. `ScriptAligner` (pure) matches
+  the last heard words against the script ahead, tolerating misrecognitions, and only moves forward: one matching word
+  advances to the next word, two stay within 12 words, three or more may jump anywhere ahead; improvising holds the
+  position. Without microphone or speech permission (or with "ritmo fijo" chosen) it advances at a fixed words-per-minute
+  pace instead. Mode, pace and font size persist in `UserDefaults` (`teleprompter.*`).
+- **Shortcuts** (global, Carbon hotkeys, registered only while the island is visible; no Accessibility permission):
+  ⌃⌥Space pause/resume, ⌃⌥← / ⌃⌥→ previous/next sentence, ⌃⌥↑ / ⌃⌥↓ previous/next section, ⌃⌥= / ⌃⌥- font size,
+  ⌃⌥Esc close.
+- **Starting it.** `/guion [nombre]` in an agent chat opens the newest (or matching, `ScriptLocator`) script of that
+  scope; `/guion cerrar` closes it. The "Crear guion" recipe (course and assignment scopes) has the agent write the script
+  and then run `open -g "catedra://guion/activar?archivo=<percent-encoded path>"` (`-g` keeps the presentation in front).
+  `ScriptLink` accepts only `.md` files inside the workspace; `catedra://guion/cerrar` closes the island.
 
 ## Focus timer
 Pomodoro-style timer (default 25 min focus / 5 min break, configurable in Settings) started from the activity detail or from the menu bar popover. `FocusTimer` (pure) works with wall-clock dates, so sleep or a late tick cannot drift it; `FocusTimerModel` owns it in the App layer, so it survives the window closing. While running, the menu bar label shows the remaining time (`m:ss`). Finished or stopped periods of at least one minute are appended to `focus-log.json` (activity id, start, end, minutes). The detail shows the total time invested per activity and the calendar's week header compares actual focus time with the planned study hours.

@@ -189,6 +189,17 @@ struct AgentPanelView: View {
                 sheetFiles = await Task.detached { since.map { GeneratedFilesScanner.scan(folder: folder, since: $0) } ?? [] }.value
                 showFiles = true
             }
+        case .script(let name):
+            guard let file = ScriptLocator.find(name, in: scopeFolder) else {
+                let detail = name.map { "llamado «\($0)» " } ?? ""
+                return show("No hay ningún guion \(detail)en \(ScriptLocator.relativeFolder)/. Pida al agente que cree uno con la receta «Crear guion».")
+            }
+            Task {
+                await container.teleprompter.open(url: file)
+                if !container.teleprompter.isActive, let notice = container.teleprompter.notice { show(notice) }
+            }
+        case .closeScript:
+            container.teleprompter.close()
         case .invalid(let message):
             show(message)
         }

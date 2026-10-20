@@ -10,6 +10,9 @@ enum AppCommand: Equatable, Sendable {
     case recipes
     case terminal
     case files
+    /// Starts a teleprompter script from `apuntes/guiones/` (nil: the newest one).
+    case script(String?)
+    case closeScript
     /// A recognized app command with a missing or wrong argument; the message is shown to the user.
     case invalid(String)
 
@@ -31,6 +34,7 @@ enum AppCommand: Equatable, Sendable {
             SlashCommand(name: "recetas", description: "Mostrar la galería de recetas", argumentHint: nil, aliases: [], kind: .app),
             SlashCommand(name: "terminal", description: "Abrir esta conversación en Terminal", argumentHint: nil, aliases: [], kind: .app),
             SlashCommand(name: "archivos", description: "Ver los archivos generados", argumentHint: nil, aliases: [], kind: .app),
+            SlashCommand(name: "guion", description: "Mostrar un guion de apuntes/guiones en el notch", argumentHint: "[nombre|cerrar]", aliases: [], kind: .app),
         ]
     }
 
@@ -53,6 +57,9 @@ enum AppCommand: Equatable, Sendable {
         case "recetas": return .recipes
         case "terminal": return .terminal
         case "archivos": return .files
+        case "guion":
+            if argument.lowercased() == "cerrar" { return .closeScript }
+            return .script(argument.isEmpty ? nil : argument)
         case "model": return parseModel(argument, provider: provider, models: models)
         case "permisos": return parsePermission(argument, provider: provider)
         default: return nil

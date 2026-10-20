@@ -28,6 +28,39 @@ enum RecipeCatalog {
     estudiante lo revise manualmente.
     """
 
+    /// Spoken script for the notch teleprompter; the agent saves it and opens it with a `catedra://guion` link.
+    private static let scriptTask = """
+
+
+    Tarea: escribe un guion hablado para que el estudiante lo lea en voz alta en el teleprompter de Cátedra (una \
+    franja en el notch del Mac) mientras graba su pantalla o presenta. Si en la conversación no está claro qué va a \
+    presentar, cuánto debe durar o ante quién, pregúntalo antes de escribir.
+
+    Reglas de redacción: lenguaje hablado y natural, en primera persona; frases cortas (idealmente menos de 20 \
+    palabras) que se puedan decir de un tirón; nada de tablas, viñetas anidadas, siglas sin explicar ni citas \
+    bibliográficas. Calcula unas 130 a 150 palabras por minuto para ajustarte a la duración. Usa solo información \
+    de la materia y del estudiante; no inventes datos ni resultados.
+
+    Formato del archivo (Markdown):
+    ---
+    titulo: <título corto>
+    duracion: <por ejemplo 3m>
+    idioma: es-VE
+    ---
+    ## <Sección, por ejemplo Diapositiva 1 o Demo>
+    <Texto que se dice en voz alta.>
+
+    Usa marcas entre corchetes para indicaciones que no se leen: [pausa], [clic], [demo], [respira]. Cada sección \
+    `##` es un punto al que el estudiante puede saltar.
+
+    Guarda el guion en `apuntes/guiones/<nombre-corto>.md` (crea la carpeta si no existe). Después actívalo en \
+    el notch ejecutando este comando con la ruta absoluta del archivo (sin `-g` el comando taparía la presentación):
+    open -g "catedra://guion/activar?archivo=$(python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1]))' "<ruta absoluta>")"
+    Si no puedes ejecutar comandos, dile al estudiante que escriba `/guion <nombre-corto>` en este chat. Termina \
+    con la duración estimada y los atajos: ⌃⌥Espacio pausa, ⌃⌥← y ⌃⌥→ frase anterior o siguiente, ⌃⌥↑ y ⌃⌥↓ \
+    sección, ⌃⌥Esc cerrar.
+    """
+
     static let all: [Recipe] = [
         Recipe(
             id: "draft-docx", title: "Borrador de entrega", subtitle: "Documento .docx con las Normas UFT",
@@ -81,6 +114,10 @@ enum RecipeCatalog {
             y qué se obtiene al terminarlo. Guarda el plan como `apuntes/plan-de-trabajo.md` y presenta un resumen \
             breve en tu respuesta.
             """),
+        Recipe(
+            id: "script-activity", title: "Crear guion", subtitle: "Guion para leer en el notch mientras presentas",
+            symbol: "text.word.spacing", applicability: .activity([.tarea]),
+            template: activityPreamble + scriptTask),
         Recipe(
             id: "study-guide", title: "Guía de estudio", subtitle: "Temas, conceptos y ejercicios de práctica",
             symbol: "book", applicability: .activity([.cuestionario, .examen]),
@@ -206,6 +243,10 @@ enum RecipeCatalog {
             Mantén el archivo legible también para otros agentes: UTF-8, indentado con dos espacios y sin comentarios. \
             Si el archivo ya existe, reemplázalo por un cuestionario nuevo (no necesitas conservar las preguntas anteriores).
             """),
+        Recipe(
+            id: "script-course", title: "Crear guion", subtitle: "Guion para leer en el notch mientras presentas",
+            symbol: "text.word.spacing", applicability: .course,
+            template: coursePreamble + scriptTask),
     ]
 
     static func recipes(for scope: AgentScope) -> [Recipe] {
