@@ -36,6 +36,7 @@
 		1AF52E7028F77A78AEFFBD54 /* GradeDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9559F8F871229F0072BB407B /* GradeDashboard.swift */; };
 		1BBB4D302D043DC9D9EE0806 /* OpenCodeEventParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC8128E669E4389EB24D445 /* OpenCodeEventParser.swift */; };
 		1BEAAEF5D614A02423B02D6E /* FlashcardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D598B7167AB7725E3569104 /* FlashcardTests.swift */; };
+		1C7B498E927919C38A0DEC2D /* MarkdownExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F72626DA2F46665EBB6D90 /* MarkdownExportTests.swift */; };
 		1DB8D00988A87185E6AAB93D /* MoodleAuthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CAD0741CE675A0354BB9FFD /* MoodleAuthTests.swift */; };
 		1E27AFB1CFB17C2633C78208 /* WorkspaceWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A883E8674D1D21B16F62317D /* WorkspaceWatcher.swift */; };
 		1FA428E1F4A306504E1A1391 /* ContentSearchDomainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6175FE5FB9E5B30C71CCA271 /* ContentSearchDomainTests.swift */; };
@@ -249,6 +250,7 @@
 		E20298357A366DB7E2B4449E /* TerminalLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0159487B35BB97080D5485 /* TerminalLauncher.swift */; };
 		E3EBC417697E157939950A25 /* AppContainer+Tracking.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBFB8B97EA24D5E41A735204 /* AppContainer+Tracking.swift */; };
 		E4ECD8D623590AA864CC8DE4 /* CalendarBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEB7920E9FB37DF524EE3135 /* CalendarBuilderTests.swift */; };
+		E57BD6C2683BF1CD8C582B7C /* MarkdownExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEF399DF03492444814AA1F /* MarkdownExport.swift */; };
 		E5BA3115A0D071B7034F06E8 /* RecipeCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83C0F96314E6446FF72CE161 /* RecipeCatalog.swift */; };
 		E775417592BF42CB6E5FC924 /* AntigravityProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 018CC839968BB0EAE623E1F2 /* AntigravityProvider.swift */; };
 		E9E170538738EF8B714DD274 /* ResourceMonitorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C8A2B4CD9D8CCD1ACA1E758 /* ResourceMonitorModel.swift */; };
@@ -500,6 +502,7 @@
 		9EDA92FEE104012E509F40A6 /* WeeklyDigestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyDigestTests.swift; sourceTree = "<group>"; };
 		9F72C10A250AFD8BC1B17B48 /* SpacedRepetition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpacedRepetition.swift; sourceTree = "<group>"; };
 		9FDAA7C5D16652F2C36F4F37 /* PaletteModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteModel.swift; sourceTree = "<group>"; };
+		A1F72626DA2F46665EBB6D90 /* MarkdownExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownExportTests.swift; sourceTree = "<group>"; };
 		A48532CBDD1CE890D6879571 /* DependencyCheckTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DependencyCheckTests.swift; sourceTree = "<group>"; };
 		A4E770C68E194F453A833AD4 /* CatedraTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CatedraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A51D02D4C715E6AC9CDABEEE /* ReminderModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderModel.swift; sourceTree = "<group>"; };
@@ -527,6 +530,7 @@
 		B811DA64366C55E656270DC6 /* CatedraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatedraApp.swift; sourceTree = "<group>"; };
 		B8DBC71AA594240D407EE3B6 /* ComposerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComposerModel.swift; sourceTree = "<group>"; };
 		BA3530D01F135F6FFFABA71A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		BAEF399DF03492444814AA1F /* MarkdownExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownExport.swift; sourceTree = "<group>"; };
 		BB0E82CC30F2C0335FF2726D /* GradeSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradeSummary.swift; sourceTree = "<group>"; };
 		BC07487FB1CEB5587EC7B165 /* Agenda.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Agenda.swift; sourceTree = "<group>"; };
 		BC787696B2571895481835C0 /* SkillFrontmatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillFrontmatter.swift; sourceTree = "<group>"; };
@@ -859,6 +863,7 @@
 				B5FBF681EC9338C4E8BF7F58 /* LaunchSyncTests.swift */,
 				03B82FBB236762F8CCDBAD41 /* LibprocSamplerTests.swift */,
 				D382D7414AA58E5CB99FF475 /* LineDiffTests.swift */,
+				A1F72626DA2F46665EBB6D90 /* MarkdownExportTests.swift */,
 				8D148EE4352B98F650697A43 /* MarkdownParserTests.swift */,
 				17F314EC1F753593BB03C341 /* MenuBarLabelTests.swift */,
 				2CAD0741CE675A0354BB9FFD /* MoodleAuthTests.swift */,
@@ -1187,6 +1192,7 @@
 				9E98E0585FC7E5B77030C404 /* CoursePalette.swift */,
 				139D0B0891399DE6B84E66DA /* DesignSystem.swift */,
 				0A8738EB5C87E6212AA90B79 /* Formatters.swift */,
+				BAEF399DF03492444814AA1F /* MarkdownExport.swift */,
 				CB69E8A9C7ACA000789EBFB3 /* MarkdownImageSource.swift */,
 				CE37DB50C6A68FAB0DC130DF /* MarkdownImageView.swift */,
 				5C86584BC5706581984F701D /* MarkdownParser.swift */,
@@ -1382,6 +1388,7 @@
 				CCAB1763C584A68E963B0CA2 /* LaunchSyncTests.swift in Sources */,
 				AFBE314D78CD16F1750EEB9A /* LibprocSamplerTests.swift in Sources */,
 				AA8D7DA0789B8BE154511408 /* LineDiffTests.swift in Sources */,
+				1C7B498E927919C38A0DEC2D /* MarkdownExportTests.swift in Sources */,
 				B863C7BE892F1AF9631F31DF /* MarkdownParserTests.swift in Sources */,
 				5CBAF6AF9EA1DA8D8E88A316 /* MenuBarLabelTests.swift in Sources */,
 				1DB8D00988A87185E6AAB93D /* MoodleAuthTests.swift in Sources */,
@@ -1542,6 +1549,7 @@
 				9246277965CD05E2D414FAB6 /* LoadWorkspaceUseCase.swift in Sources */,
 				FBDCFD48A9BC805884CF74F0 /* LocalSlashCommandScanner.swift in Sources */,
 				300D32182AADD03D8EE0635B /* LoginShellEnvironment.swift in Sources */,
+				E57BD6C2683BF1CD8C582B7C /* MarkdownExport.swift in Sources */,
 				F77A658B96DF69330F3FDA2F /* MarkdownImageSource.swift in Sources */,
 				BD02A9FC924DB968EFDAF8BC /* MarkdownImageView.swift in Sources */,
 				79AE9DCD5BD1B1575F46DA5D /* MarkdownParser.swift in Sources */,

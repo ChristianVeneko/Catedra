@@ -40,12 +40,8 @@ struct AgentTranscriptView: View {
             HStack {
                 Spacer(minLength: 60)
                 CopyMessageButton(text: text).padding(.top, 8)
-                Text(text)
-                    .textSelection(.enabled)
-                    .padding(12)
-                    .background(color.opacity(0.14), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .lineLimit(12)
-                    .contextMenu { CopyMessageButton.menuItem(text: text) }
+                UserBubble(text: text, color: color)
+                    .contextMenu { CopyMessageButton.menuItems(text: text) }
             }
         case .assistant(_, let text):
             HStack(alignment: .top, spacing: 10) {
@@ -55,7 +51,7 @@ struct AgentTranscriptView: View {
                 CopyMessageButton(text: text)
             }
             .padding(14).frame(maxWidth: .infinity, alignment: .leading).card()
-            .contextMenu { CopyMessageButton.menuItem(text: text) }
+            .contextMenu { CopyMessageButton.menuItems(text: text) }
         case .thinking(_, let text):
             DisclosureGroup {
                 Text(text).font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
@@ -76,23 +72,60 @@ struct AgentTranscriptView: View {
     }
 }
 
-/// Copies the whole message (its Markdown source) in one go; per-block text selection cannot span bullets or tables.
+/// Long prompts collapse to 12 lines with a "Ver más" toggle instead of being cut off.
+private struct UserBubble: View {
+    static let collapsedLines = 12
+    let text: String
+    let color: Color
+    @State private var expanded = false
+
+    private var isLong: Bool {
+        text.split(separator: "\n", omittingEmptySubsequences: false).count > Self.collapsedLines || text.count > 900
+    }
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 6) {
+            Text(text)
+                .textSelection(.enabled)
+                .lineLimit(expanded ? nil : Self.collapsedLines)
+            if isLong {
+                Button(expanded ? "Ver menos" : "Ver más") { withAnimation(.snappy) { expanded.toggle() } }
+                    .buttonStyle(.link).font(.caption)
+            }
+        }
+        .padding(12)
+        .background(color.opacity(0.14), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+/// Copies the whole message in one go; per-block text selection cannot span bullets or tables.
+/// The default copy carries HTML (Word, Pages, Notion keep the format) plus the Markdown source as plain text.
 private struct CopyMessageButton: View {
     let text: String
     @State private var copied = false
 
-    static func copy(_ text: String) {
+    static func copyFormatted(_ text: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(MarkdownExport.html(text), forType: .html)
+        pasteboard.setString(text, forType: .string)
+    }
+
+    static func copyString(_ text: String) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
     }
 
-    static func menuItem(text: String) -> some View {
-        Button("Copiar mensaje", systemImage: "doc.on.doc") { copy(text) }
+    @ViewBuilder
+    static func menuItems(text: String) -> some View {
+        Button("Copiar mensaje", systemImage: "doc.on.doc") { copyFormatted(text) }
+        Button("Copiar como Markdown", systemImage: "number") { copyString(text) }
+        Button("Copiar como texto", systemImage: "text.alignleft") { copyString(MarkdownExport.plainText(text)) }
     }
 
     var body: some View {
         Button {
-            Self.copy(text)
+            Self.copyFormatted(text)
             copied = true
             Task {
                 try? await Task.sleep(for: .seconds(1.5))

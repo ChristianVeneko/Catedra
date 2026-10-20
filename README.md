@@ -186,8 +186,11 @@ the icons follow the run's provider. Each provider is an `AgentProvider` (argume
 - Settings: per provider, executable, default model and permission level ("Sin restricciones" is shown with a warning).
   Denied tool calls are listed in the transcript with a hint to change the mode (Claude `permission_denials`; OpenCode
   rejected tool calls).
-- Every user and assistant message has a copy button (and a "Copiar mensaje" context-menu item) that copies the whole
-  message as its Markdown source, since text selection stops at each paragraph, bullet or table cell.
+- Every user and assistant message has a copy button that copies the whole message, since text selection stops at each
+  paragraph, bullet or table cell. It writes HTML (`MarkdownExport.html`, so Word, Pages and Notion keep headings, lists
+  and tables) plus the Markdown source as plain text. The context menu adds "Copiar como Markdown" and "Copiar como
+  texto" (`MarkdownExport.plainText`: bullets as `•`, tables tab-separated for spreadsheets). Prompts longer than 12
+  lines collapse behind "Ver más".
 - Recipes (`RecipeCatalog`) are one-click, editable Spanish prompts. By design there is **no** recipe that answers a live
   graded quiz or exam: exam/quiz recipes only prepare (study guide, practice exam with separate answers, key concepts).
   Everything the agent writes is a draft for manual review; submission to SAIA stays manual.
