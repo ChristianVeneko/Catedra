@@ -52,8 +52,8 @@ targets:
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Cátedra reconoce su voz en este Mac para seguir el guion mientras presenta."
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-        CURRENT_PROJECT_VERSION: 1
-        MARKETING_VERSION: 0.1.0
+        CURRENT_PROJECT_VERSION: 2
+        MARKETING_VERSION: 0.2.0
   CatedraWidget:
     type: app-extension
     platform: macOS
@@ -80,8 +80,8 @@ targets:
         ENABLE_APP_SANDBOX: YES
         SKIP_INSTALL: YES
         APPLICATION_EXTENSION_API_ONLY: YES
-        CURRENT_PROJECT_VERSION: 1
-        MARKETING_VERSION: 0.1.0
+        CURRENT_PROJECT_VERSION: 2
+        MARKETING_VERSION: 0.2.0
   CatedraTests:
     type: bundle.unit-test
     platform: macOS
