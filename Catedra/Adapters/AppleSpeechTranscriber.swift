@@ -1,6 +1,7 @@
 import AVFoundation
 import Foundation
 import Speech
+import os
 
 /// Microphone + `SFSpeechRecognizer`, on device when the language supports it.
 /// Recognition requests are short-lived, so each final result or error starts a new request on the same audio tap;
@@ -20,6 +21,9 @@ final class AppleSpeechTranscriber: SpeechTranscribing {
     }
 
     static let maxConsecutiveFailures = 3
+    /// An error this soon after a request started means recognition cannot run (a restart loop), not a silence timeout.
+    static let quickFailure: TimeInterval = 1.5
+    private static let log = Logger(subsystem: "com.cmendoza.catedra", category: "speech")
 
     private lazy var engine = AVAudioEngine()
     private let box = RequestBox()
@@ -30,6 +34,9 @@ final class AppleSpeechTranscriber: SpeechTranscribing {
     private var running = false
     /// Bumped for every request and on stop, so callbacks of an older request are ignored.
     private var generation = 0
+    private var requestStarted = Date()
+    /// Cleared after repeated quick failures on device, to retry with Apple's server recognition.
+    private var preferOnDevice = true
 
     func requestAuthorization() async -> SpeechAuthorization {
         guard SFSpeechRecognizer() != nil else { return .unavailable }
@@ -64,6 +71,7 @@ final class AppleSpeechTranscriber: SpeechTranscribing {
         self.continuation = continuation
         running = true
         failures = 0
+        preferOnDevice = true
         beginRequest()
         return stream
     }
@@ -100,23 +108,32 @@ final class AppleSpeechTranscriber: SpeechTranscribing {
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
         request.addsPunctuation = false
-        if recognizer.supportsOnDeviceRecognition { request.requiresOnDeviceRecognition = true }
+        if preferOnDevice, recognizer.supportsOnDeviceRecognition { request.requiresOnDeviceRecognition = true }
+        requestStarted = Date()
         generation += 1
         task?.cancel()
         box.replace(with: request)?.endAudio()
         task = recognizer.recognitionTask(with: request, resultHandler: Self.resultHandler(for: self, generation: generation))
     }
 
-    fileprivate func handle(text: String?, isFinal: Bool, failed: Bool, generation: Int) {
+    fileprivate func handle(text: String?, isFinal: Bool, error: String?, generation: Int) {
         guard running, generation == self.generation else { return }
         if let text, !text.isEmpty {
             failures = 0
             continuation?.yield(text)
         }
-        guard isFinal || failed else { return }
-        if failed, text == nil {
-            failures += 1
-            if failures >= Self.maxConsecutiveFailures { stop(); return }
+        guard isFinal || error != nil else { return }
+        if let error, text == nil {
+            let elapsed = Date().timeIntervalSince(requestStarted)
+            Self.log.notice("recognition ended after \(elapsed, format: .fixed(precision: 1))s: \(error, privacy: .public)")
+            // Silence timeouts ("no speech detected") arrive after a while: just start the next request.
+            failures = elapsed < Self.quickFailure ? failures + 1 : 0
+            if failures >= Self.maxConsecutiveFailures {
+                guard preferOnDevice, recognizer?.supportsOnDeviceRecognition == true else { stop(); return }
+                Self.log.notice("on-device recognition keeps failing; retrying with server recognition")
+                preferOnDevice = false
+                failures = 0
+            }
         }
         beginRequest()
     }
@@ -134,8 +151,8 @@ final class AppleSpeechTranscriber: SpeechTranscribing {
         { result, error in
             let text = result?.bestTranscription.formattedString
             let isFinal = result?.isFinal ?? false
-            let failed = error != nil
-            Task { @MainActor in owner.handle(text: text, isFinal: isFinal, failed: failed, generation: generation) }
+            let failure = error.map { "\(($0 as NSError).domain) \(($0 as NSError).code): \($0.localizedDescription)" }
+            Task { @MainActor in owner.handle(text: text, isFinal: isFinal, error: failure, generation: generation) }
         }
     }
 

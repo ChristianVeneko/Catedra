@@ -39,28 +39,35 @@ struct TeleprompterIslandView: View {
             header(script)
             if let notice = model.notice {
                 Text(notice).font(.caption).foregroundStyle(.orange).lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .onTapGesture { model.dismissNotice() }
             }
-            sentence(script, index: current)
-                .font(.system(size: model.fontSize, weight: .semibold, design: .rounded))
-                .lineLimit(3)
-                .minimumScaleFactor(0.7)
-                .id("sentence-\(current)")
-                .transition(.asymmetric(insertion: .move(edge: .bottom).combined(with: .opacity),
-                                        removal: .move(edge: .top).combined(with: .opacity)))
-            if current + 1 < script.sentences.count {
-                Text(script.sentences[current + 1].text)
-                    .font(.system(size: model.fontSize * 0.62, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.38))
-                    .lineLimit(1)
-                    .id("next-\(current)")
-                    .transition(.opacity)
+            // Fixed-height, clipped box: the incoming sentence pushes the old one out without the two overlapping
+            // the rows around it.
+            ZStack(alignment: .topLeading) {
+                sentence(script, index: current)
+                    .font(.system(size: model.fontSize, weight: .semibold, design: .rounded))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.6)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .id(current)
+                    .transition(.push(from: .bottom))
             }
+            .frame(height: sentenceHeight, alignment: .topLeading)
+            .clipped()
+            .animation(.spring(response: 0.38, dampingFraction: 0.9), value: current)
+            Text(current + 1 < script.sentences.count ? script.sentences[current + 1].text : " ")
+                .font(.system(size: model.fontSize * 0.62, weight: .medium, design: .rounded))
+                .foregroundStyle(.white.opacity(0.38))
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .transaction { $0.animation = nil }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: current)
-        .animation(.easeOut(duration: 0.18), value: model.position)
     }
+
+    /// Two lines of the current sentence at the chosen size.
+    private var sentenceHeight: CGFloat { (model.fontSize * 1.28 * 2).rounded(.up) }
 
     private func header(_ script: Script) -> some View {
         let section = script.sections.indices.contains(model.currentSection) ? script.sections[model.currentSection].title : ""

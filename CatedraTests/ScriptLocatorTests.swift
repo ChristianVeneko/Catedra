@@ -29,6 +29,14 @@ struct ScriptLocatorTests {
         #expect(ScriptLocator.find("presupuesto", in: root) == nil)
     }
 
+    @Test func matchesTheFileNameAsTyped() throws {
+        let root = try makeFolder([("resumen-ensayo.md", 10), ("otro.md", 5)])
+        defer { try? FileManager.default.removeItem(at: root) }
+        #expect(ScriptLocator.find("resumen-ensayo", in: root)?.lastPathComponent == "resumen-ensayo.md")
+        #expect(ScriptLocator.find("resumen-ensayo.md", in: root)?.lastPathComponent == "resumen-ensayo.md")
+        #expect(ScriptLocator.find("resumen", in: root)?.lastPathComponent == "resumen-ensayo.md")
+    }
+
     @Test func missingFolderFindsNothing() {
         #expect(ScriptLocator.find(nil, in: URL(fileURLWithPath: "/nonexistent")) == nil)
     }
