@@ -28,6 +28,8 @@ final class AppContainer {
     let focus: FocusTimerModel
     let weekly: WeeklySummaryModel
     let autopilot: AutopilotModel
+    let teleprompter: TeleprompterModel
+    let notchPanel = NotchPanelController()
     var widget: WidgetSyncModel?
     /// Opens a window scene by id; registered by views that have access to `openWindow`.
     var openWindowByID: (@MainActor (String) -> Void)?
@@ -106,6 +108,9 @@ final class AppContainer {
         self.weekly = WeeklySummaryModel(store: store("weekly-summary.json"), runner: CLIAgentRunner(tracker: processRegistry),
                                          directory: WeeklySummaryModel.defaultDirectory, notifier: notifier)
         self.autopilot = AutopilotModel(store: store("autopilot.json"))
+        self.teleprompter = TeleprompterModel(transcriber: AppleSpeechTranscriber(), presenter: nil)
+        notchPanel.attach(model: teleprompter)
+        teleprompter.attach(presenter: notchPanel)
         wireTracking()
         if !underTest { wireWidget() }
         wirePalette()

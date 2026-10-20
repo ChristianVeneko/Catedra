@@ -48,6 +48,8 @@ targets:
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.education
         INFOPLIST_KEY_NSHumanReadableCopyright: ""
         INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription: "Cátedra necesita acceso a Calendario para exportar sus entregas, clases y bloques de estudio al calendario «Cátedra»."
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Cátedra usa el micrófono para que el guion avance mientras usted habla. El audio se procesa en este Mac y no se guarda."
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Cátedra reconoce su voz en este Mac para seguir el guion mientras presenta."
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CURRENT_PROJECT_VERSION: 1
